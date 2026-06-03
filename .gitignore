@@ -1,0 +1,31 @@
+# ─── Secrets ──────────────────────────────────────────────────────────────────
+.env
+
+# ─── SQLite databases (dev artifacts — production uses PostgreSQL) ─────────────
+*.db
+*.sqlite
+*.sqlite3
+
+# ─── Python ───────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+*.egg-info/
+
+# ─── Uploaded files (use cloud storage in production) ─────────────────────────
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# ─── Logs ─────────────────────────────────────────────────────────────────────
+*.log
+
+# ─── Node / Expo ──────────────────────────────────────────────────────────────
+frontend/node_modules/
+frontend/.expo/
+frontend/.expo-shared/
+
+# ─── OS ───────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db

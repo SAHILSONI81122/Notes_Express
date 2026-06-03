@@ -1,0 +1,38 @@
+# NotesExpress Backend — Pinned Dependencies
+# Generated: 2026-06-03
+# To install: pip install -r requirements.txt
+
+# ── Web Framework ──────────────────────────────────────────────────────────────
+fastapi==0.136.1
+uvicorn==0.47.0
+
+# ── Database ───────────────────────────────────────────────────────────────────
+sqlalchemy[asyncio]>=2.0,<3.0
+asyncpg==0.31.0
+psycopg2-binary>=2.9,<3.0
+alembic==1.18.4
+
+# ── Auth & Security ────────────────────────────────────────────────────────────
+python-jose[cryptography]>=3.3,<4.0
+passlib[bcrypt]>=1.7,<2.0
+bcrypt==5.0.0
+
+# ── Validation & Config ────────────────────────────────────────────────────────
+pydantic==2.13.4
+pydantic[email]
+python-multipart==0.0.29
+python-dotenv>=1.0,<2.0
+
+# ── Rate Limiting ──────────────────────────────────────────────────────────────
+slowapi==0.1.9
+
+# ── File Processing ────────────────────────────────────────────────────────────
+Pillow>=10.0,<12.0
+fpdf2==2.8.7
+
+# ── AI / OCR ──────────────────────────────────────────────────────────────────
+google-generativeai>=0.7,<1.0
+
+# ── Push Notifications ─────────────────────────────────────────────────────────
+exponent_server_sdk>=2.0,<3.0
+aiosqlite>=0.20,<1.0
