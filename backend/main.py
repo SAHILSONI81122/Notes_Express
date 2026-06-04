@@ -21,8 +21,11 @@ logger = logging.getLogger("notesexpress")
 # ── Lifespan (replaces deprecated @app.on_event) ──────────────────────────────
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # ── Startup ───────────────────────────────────────────────────────────────
-    os.makedirs("backend/uploads", exist_ok=True)
+    try:
+        if not os.environ.get("VERCEL"):
+            os.makedirs("backend/uploads", exist_ok=True)
+    except Exception as e:
+        logger.warning(f"Could not create uploads directory: {e}")
 
     # Create tables that don't exist yet (dev convenience).
     # In production: run `alembic upgrade head` instead.
