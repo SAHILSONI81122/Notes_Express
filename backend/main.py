@@ -29,8 +29,11 @@ async def lifespan(app: FastAPI):
 
     # Create tables that don't exist yet (dev convenience).
     # In production: run `alembic upgrade head` instead.
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    try:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+    except Exception as e:
+        logger.error(f"Database connection failed during startup: {e}")
 
     logger.info("NotesExpress API started.")
     yield
