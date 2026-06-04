@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, Image, TouchableOpacity, Platform, ScrollView, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { getLeaderboard, getMe } from '../api/api';
+import { getLeaderboard, getMe, API_URL } from '../api/api';
 import { useTheme } from '../context/ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -95,7 +95,7 @@ const LeaderboardScreen = ({ navigation }) => {
             <View style={styles.podiumWrapper}>
                 <View style={[styles.podiumAvatarContainer, { width: size, height: size, borderRadius: size/2, borderColor: colors[0] }]}>
                     {student.avatar_url ? (
-                        <Image source={{ uri: `http://192.168.29.90:8000${student.avatar_url}` }} style={styles.avatarFull} />
+                        <Image source={{ uri: `${API_URL}${student.avatar_url}` }} style={styles.avatarFull} />
                     ) : (
                         <Text style={[styles.avatarTextLarge, { fontSize: size/2.5 }]}>{student.name.charAt(0).toUpperCase()}</Text>
                     )}
@@ -141,7 +141,7 @@ const LeaderboardScreen = ({ navigation }) => {
                 
                 <View style={[styles.listAvatar, !hasAnyXp && { marginLeft: 0 }]}>
                     {item.avatar_url ? (
-                        <Image source={{ uri: `http://192.168.29.90:8000${item.avatar_url}` }} style={styles.avatarFull} />
+                        <Image source={{ uri: `${API_URL}${item.avatar_url}` }} style={styles.avatarFull} />
                     ) : (
                         <Text style={styles.avatarTextSmall}>{item.name.charAt(0).toUpperCase()}</Text>
                     )}

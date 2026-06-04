@@ -98,3 +98,28 @@ export const getOfflineSubmissions = async () => {
 export const clearOfflineSubmissions = async () => {
     await AsyncStorage.removeItem('offline_submissions');
 };
+
+// Permanent Caching (survives AsyncStorage clearing)
+export const savePermanentCache = async (key, data) => {
+    try {
+        await initOfflineManager();
+        const path = `${DOWNLOAD_DIR}${key}.json`;
+        await FileSystem.writeAsStringAsync(path, JSON.stringify(data), { encoding: FileSystem.EncodingType.UTF8 });
+    } catch (e) {
+        console.log("Failed to save permanent cache:", e);
+    }
+};
+
+export const getPermanentCache = async (key) => {
+    try {
+        const path = `${DOWNLOAD_DIR}${key}.json`;
+        const info = await FileSystem.getInfoAsync(path);
+        if (!info.exists) return null;
+        
+        const str = await FileSystem.readAsStringAsync(path, { encoding: FileSystem.EncodingType.UTF8 });
+        return str; // Return string, let the caller JSON.parse it to match AsyncStorage behavior
+    } catch (e) {
+        console.log("Failed to get permanent cache:", e);
+        return null;
+    }
+};

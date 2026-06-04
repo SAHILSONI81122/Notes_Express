@@ -12,7 +12,7 @@ import { useTheme } from '../context/ThemeContext';
 import * as WebBrowser from 'expo-web-browser';
 import { LinearGradient } from 'expo-linear-gradient';
 import Constants from 'expo-constants';
-import { isOnline, downloadNote, openLocalNote, isNoteDownloaded } from '../utils/offlineManager';
+import { isOnline, downloadNote, openLocalNote, isNoteDownloaded, savePermanentCache, getPermanentCache } from '../utils/offlineManager';
 
 const SW = Dimensions.get('window').width;
 
@@ -220,16 +220,17 @@ const NotesScreen = ({ navigation, route }) => {
             const classId = classIdStr ? Number(classIdStr) : null;
             setSelectedClassId(classId);
 
-            const online = await isOnline();
-            if (!online) {
-                const cacheKey = 'notes_cache_' + (folder ? folder.id : 'root');
-                const cachedData = await AsyncStorage.getItem(cacheKey);
-                if (cachedData) {
+            const cacheKey = 'notes_cache_' + (folder ? folder.id : 'root');
+            const cachedData = await getPermanentCache(cacheKey);
+            let hasCache = false;
+            if (cachedData) {
+                try {
                     const parsed = JSON.parse(cachedData);
                     setNotes(parsed.notes || []);
                     setFolders(parsed.folders || []);
                     setCompletedNoteIds(new Set(parsed.completed || []));
                     setNoteXp(parsed.xp || 0);
+                    if (parsed.globalTotalNotes !== undefined) setGlobalTotalNotes(parsed.globalTotalNotes);
                     
                     const recentStr = await AsyncStorage.getItem('recent_notes_v1') || '[]';
                     const recents = JSON.parse(recentStr);
@@ -238,10 +239,19 @@ const NotesScreen = ({ navigation, route }) => {
                     
                     await loadSavedNoteTimes(parsed.notes || [], recs);
                     await checkDownloadedStatus(parsed.notes || []);
-                } else {
-                    Alert.alert("Offline", "No internet connection and no cached notes available.");
+                    setLoading(false); // Instantly stop loading spinner
+                    hasCache = true;
+                } catch (e) {
+                    console.log("Error parsing cache", e);
                 }
-                setLoading(false);
+            }
+
+            const online = await isOnline();
+            if (!online) {
+                if (!hasCache) {
+                    Alert.alert("Offline", "No internet connection and no cached notes available.");
+                    setLoading(false);
+                }
                 return;
             }
 
@@ -279,13 +289,13 @@ const NotesScreen = ({ navigation, route }) => {
                 }
 
                 const cacheKey = 'notes_cache_' + (folder ? folder.id : 'root');
-                await AsyncStorage.setItem(cacheKey, JSON.stringify({
+                await savePermanentCache(cacheKey, {
                     notes: fetchedNotes,
                     folders: fetchedFolders,
                     completed: completedArr,
                     xp: xp,
                     globalTotalNotes: globalNotes
-                }));
+                });
 
                 let recs = [];
                 if (!folder) {
@@ -638,7 +648,7 @@ const NotesScreen = ({ navigation, route }) => {
     };
 
     const renderDashboard = () => {
-        if (folder) return null;
+        if (!user || folder) return null;
         if (user?.role === 'teacher' || user?.role === 'admin') return null;
         
         // Use global counts for the dashboard to accurately show overall mastery

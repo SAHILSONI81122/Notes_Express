@@ -19,7 +19,7 @@ function getDefaultApiUrl() {
     return 'http://10.0.2.2:8000';   // Android Emulator → host machine
   }
   // Physical devices cannot connect to 127.0.0.1, they need the Mac's IP
-  return 'http://192.168.29.90:8000'; 
+  return 'http://192.168.1.10:8000'; 
 }
 
 export const API_URL = _envApiUrl || getDefaultApiUrl();

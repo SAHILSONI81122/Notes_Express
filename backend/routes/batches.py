@@ -69,7 +69,7 @@ async def create_batch(batch: BatchCreate, db: AsyncSession = Depends(get_db), c
     final_result = await db.execute(
         select(Batch).options(
             selectinload(Batch.institute),
-            selectinload(Batch.class_groups)
+            selectinload(Batch.class_groups)    
         ).where(Batch.id == new_batch.id)
     )
     return final_result.scalars().first()

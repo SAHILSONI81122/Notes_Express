@@ -11,7 +11,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../context/ThemeContext';
 import * as WebBrowser from 'expo-web-browser';
 import { LinearGradient } from 'expo-linear-gradient';
-import { isOnline, queueOfflineSubmission } from '../utils/offlineManager';
+import { isOnline, queueOfflineSubmission, savePermanentCache, getPermanentCache } from '../utils/offlineManager';
 import * as ScreenCapture from 'expo-screen-capture';
 
 const AnimatedProgressBar = ({ progress, color, height = 4 }) => {
@@ -266,11 +266,11 @@ const DPPScreen = ({ navigation, route }) => {
             const classId = classIdStr ? Number(classIdStr) : null;
             setSelectedClassId(classId);
 
-            const online = await isOnline();
-            if (!online) {
-                const cacheKey = 'dpps_cache_' + (folder ? folder.id : 'root');
-                const cachedData = await AsyncStorage.getItem(cacheKey);
-                if (cachedData) {
+            const cacheKey = 'dpps_cache_' + (folder ? folder.id : 'root');
+            const cachedData = await getPermanentCache(cacheKey);
+            let hasCache = false;
+            if (cachedData) {
+                try {
                     const parsed = JSON.parse(cachedData);
                     setDpps(parsed.dpps || []);
                     setFolders(parsed.folders || []);
@@ -284,10 +284,19 @@ const DPPScreen = ({ navigation, route }) => {
                     setRecentDpps(recs);
                     
                     await loadSavedDppTimes(parsed.dpps || [], recs);
-                } else {
-                    Alert.alert("Offline", "No internet connection and no cached challenges available.");
+                    setLoading(false); // Instantly stop loading spinner
+                    hasCache = true;
+                } catch(e) {
+                    console.log("Error parsing cache", e);
                 }
-                setLoading(false);
+            }
+
+            const online = await isOnline();
+            if (!online) {
+                if (!hasCache) {
+                    Alert.alert("Offline", "No internet connection and no cached challenges available.");
+                    setLoading(false);
+                }
                 return;
             }
 
@@ -329,13 +338,13 @@ const DPPScreen = ({ navigation, route }) => {
                 }
 
                 const cacheKey = 'dpps_cache_' + (folder ? folder.id : 'root');
-                await AsyncStorage.setItem(cacheKey, JSON.stringify({
+                await savePermanentCache(cacheKey, {
                     dpps: fetchedDpps,
                     folders: fetchedFolders,
                     completed: completedArr,
                     xp: xp,
                     progress: progress
-                }));
+                });
 
                 let recs = [];
                 if (!folder) {
@@ -1086,7 +1095,7 @@ const DPPScreen = ({ navigation, route }) => {
     };
 
     const renderDashboard = () => {
-        if (folder) return null;
+        if (!user || folder) return null;
         if (user?.role === 'teacher' || user?.role === 'admin') return null;
         
         // Use progress API data (spans all folders) if available, fallback to visible dpps
