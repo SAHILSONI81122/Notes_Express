@@ -49,7 +49,8 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # ── Static file serving ────────────────────────────────────────────────────────
-app.mount("/uploads", StaticFiles(directory="backend/uploads"), name="uploads")
+if os.path.exists("backend/uploads"):
+    app.mount("/uploads", StaticFiles(directory="backend/uploads"), name="uploads")
 
 # ── CORS ───────────────────────────────────────────────────────────────────────
 # In production set ALLOWED_ORIGINS=https://yourdomain.com in .env
