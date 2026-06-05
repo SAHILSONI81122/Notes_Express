@@ -6,7 +6,6 @@ module.exports = {
     orientation: "portrait",
     icon: "./assets/icon.png",
     userInterfaceStyle: "light",
-    newArchEnabled: false,
     splash: {
       image: "./assets/splash-icon.png",
       resizeMode: "contain",
@@ -65,10 +64,11 @@ module.exports = {
           cameraPermission: "Notes Express uses the camera to scan QR codes for joining classes."
         }
       ],
+      "expo-web-browser"
     ],
     extra: {
       eas: {
-        projectId: process.env.EXPO_PUBLIC_EAS_PROJECT_ID || ""
+        projectId: "396c16e3-6904-41f7-b4ad-7df0570474b9"
       }
     }
   }

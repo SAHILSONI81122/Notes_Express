@@ -108,6 +108,25 @@ async def update_avatar(file: UploadFile = File(...), db: AsyncSession = Depends
     await db.refresh(user)
     
     return {"avatar_url": public_url}
+
+from pydantic import BaseModel
+class AvatarUrlUpdate(BaseModel):
+    avatar_url: str
+
+@router.post("/me/avatar-url")
+async def update_avatar_url(data: AvatarUrlUpdate, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_active_user)):
+    result = await db.execute(select(User).where(User.id == current_user.id))
+    user = result.scalars().first()
+    
+    if user.avatar_url and user.avatar_url != data.avatar_url:
+        await delete_file_from_supabase(user.avatar_url)
+        
+    user.avatar_url = data.avatar_url
+    db.add(user)
+    await db.commit()
+    await db.refresh(user)
+    
+    return {"avatar_url": user.avatar_url}
     
 from backend.models.models import Note, DPP, Attempt, NoteCompletion
 

@@ -56,10 +56,11 @@ const FolderNotesScreen = ({ route, navigation }) => {
         try {
             const [userRes, notesRes] = await Promise.all([
                 getMe(),
-                getNotes(folder.batch_id, folder.class_group_id)
+                // Bug Fix: Pass folder.id so backend filters by folder — don't fetch all notes and filter client-side
+                getNotes(folder.batch_id, folder.class_group_id, folder.id)
             ]);
             setUser(userRes.data);
-            const folderNotes = notesRes.data.filter(note => note.folder_id === folder.id);
+            const folderNotes = notesRes.data;
             setNotes(folderNotes);
             await loadSavedNoteTimes(folderNotes);
         } catch (error) {

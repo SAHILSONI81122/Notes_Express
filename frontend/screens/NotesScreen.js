@@ -220,7 +220,8 @@ const NotesScreen = ({ navigation, route }) => {
             const classId = classIdStr ? Number(classIdStr) : null;
             setSelectedClassId(classId);
 
-            const cacheKey = 'notes_cache_' + (folder ? folder.id : 'root');
+            // Bug Fix 2: Include classId in cache key so different classes never share a cache.
+            const cacheKey = 'notes_cache_' + (classId || 'global') + '_' + (folder ? folder.id : 'root');
             const cachedData = await getPermanentCache(cacheKey);
             let hasCache = false;
             if (cachedData) {
@@ -231,10 +232,21 @@ const NotesScreen = ({ navigation, route }) => {
                     setCompletedNoteIds(new Set(parsed.completed || []));
                     setNoteXp(parsed.xp || 0);
                     if (parsed.globalTotalNotes !== undefined) setGlobalTotalNotes(parsed.globalTotalNotes);
+
+                    // Bug Fix 1: Restore user role from cache so FAB buttons appear instantly.
+                    const cachedRole = await AsyncStorage.getItem('cached_user_role');
+                    const cachedBatchId = await AsyncStorage.getItem('cached_user_batch_id');
+                    if (cachedRole) {
+                        setUser({ role: cachedRole, batch_id: cachedBatchId ? Number(cachedBatchId) : null });
+                    }
                     
+                    // Bug Fix 2: Filter recent notes by current class group.
                     const recentStr = await AsyncStorage.getItem('recent_notes_v1') || '[]';
                     const recents = JSON.parse(recentStr);
-                    const recs = recents.filter(n => Date.now() - n.openedAt < 24 * 60 * 60 * 1000);
+                    const recs = recents.filter(n => 
+                        Date.now() - n.openedAt < 24 * 60 * 60 * 1000 &&
+                        (classId ? n.class_group_id === classId : true)
+                    );
                     setRecentNotes(recs);
                     
                     await loadSavedNoteTimes(parsed.notes || [], recs);
@@ -257,6 +269,11 @@ const NotesScreen = ({ navigation, route }) => {
 
             const userRes = await getMe();
             setUser(userRes.data);
+            // Bug Fix 1: Cache user role so it can be restored from cache on next load.
+            await AsyncStorage.setItem('cached_user_role', userRes.data.role);
+            if (userRes.data.batch_id) {
+                await AsyncStorage.setItem('cached_user_batch_id', String(userRes.data.batch_id));
+            }
             const batchId = userRes.data.batch_id;
             
             if (batchId) {
@@ -288,7 +305,7 @@ const NotesScreen = ({ navigation, route }) => {
                     setGlobalTotalNotes(globalNotes);
                 }
 
-                const cacheKey = 'notes_cache_' + (folder ? folder.id : 'root');
+                // Bug Fix 2: Save with class-aware cache key.
                 await savePermanentCache(cacheKey, {
                     notes: fetchedNotes,
                     folders: fetchedFolders,
@@ -301,7 +318,8 @@ const NotesScreen = ({ navigation, route }) => {
                 if (!folder) {
                     const recentStr = await AsyncStorage.getItem('recent_notes_v1') || '[]';
                     const recents = JSON.parse(recentStr);
-                    // Purge deleted notes from recents by cross-checking with server-fetched IDs
+                    // Purge deleted notes from recents by cross-checking with server-fetched IDs.
+                    // Bug Fix 2: Also filter by current class.
                     const allFetchedNoteIds = new Set(fetchedNotes.map(n => n.id));
                     const cleanedRecents = recents.filter(n =>
                         Date.now() - n.openedAt < 24 * 60 * 60 * 1000 &&
@@ -310,7 +328,8 @@ const NotesScreen = ({ navigation, route }) => {
                     if (cleanedRecents.length !== recents.length) {
                         await AsyncStorage.setItem('recent_notes_v1', JSON.stringify(cleanedRecents));
                     }
-                    recs = cleanedRecents;
+                    // Show only current class recents in UI
+                    recs = cleanedRecents.filter(n => classId ? n.class_group_id === classId : true);
                     setRecentNotes(recs);
                 }
                 await loadSavedNoteTimes(fetchedNotes, recs);
@@ -585,6 +604,7 @@ const NotesScreen = ({ navigation, route }) => {
             }
 
             // Update recents list
+            // Bug Fix 2: Store class_group_id in recents so they can be filtered per class.
             const recentStr = await AsyncStorage.getItem('recent_notes_v1') || '[]';
             let recents = JSON.parse(recentStr);
             recents = recents.filter(n => n.id !== note.id);
@@ -592,7 +612,12 @@ const NotesScreen = ({ navigation, route }) => {
             recents = recents.slice(0, 20);
             await AsyncStorage.setItem('recent_notes_v1', JSON.stringify(recents));
             if (!folder) {
-                setRecentNotes(recents.filter(n => Date.now() - n.openedAt < 24 * 60 * 60 * 1000));
+                const classIdStr = await AsyncStorage.getItem('selectedClassGroupId');
+                const currentClassId = classIdStr ? Number(classIdStr) : null;
+                setRecentNotes(recents.filter(n => 
+                    Date.now() - n.openedAt < 24 * 60 * 60 * 1000 &&
+                    (currentClassId ? n.class_group_id === currentClassId : true)
+                ));
             }
         } catch (error) {
             Alert.alert("Error", "Could not open note");

@@ -318,7 +318,8 @@ const StudentDashboard = ({ route, navigation }) => {
                 setUser(userData);
                 
                 const id = await AsyncStorage.getItem('selectedClassGroupId');
-                setSelectedClassId(id);
+                const numericId = id ? Number(id) : null;
+                setSelectedClassId(numericId);
 
                 if (userData.batch_id && (userData.role === 'admin' || userData.role === 'teacher')) {
                     getClassGroups(userData.batch_id).then(async cgRes => {
@@ -352,22 +353,22 @@ const StudentDashboard = ({ route, navigation }) => {
             getUnreadCount().then(res => setUnreadDoubts(res.data.unread_count || 0)).catch(console.log);
             getChestsStatus().then(res => setChests(res.data.chests)).catch(console.log);
 
-            // Send heartbeat immediately then every 1 second
+            // Send heartbeat immediately then every 30 seconds (not 1s — avoids flooding the API)
             sendHeartbeat('Browsing Dashboard').catch(console.log);
             heartbeatRef.current = setInterval(() => {
                 sendHeartbeat('Browsing Dashboard').catch(console.log);
-            }, 1000);
+            }, 30000);
 
-            // Poll active count every 1 second (only for admin/teacher)
+            // Poll active count every 30 seconds (not 1s — avoids hammering the API)
             pollRef.current = setInterval(async () => {
                 const userRes = await getMe();
                 if (userRes.data.role === 'admin' || userRes.data.role === 'teacher') {
                     const id = await AsyncStorage.getItem('selectedClassGroupId');
                     fetchActiveCount(id);
                 }
-            }, 1000);
+            }, 30000);
             
-            // Poll for student progress changes every 3 seconds to simulate push notifications on simulators
+            // Poll for student progress changes every 60 seconds
             const studentPollRef = setInterval(async () => {
                 const userRes = await getMe();
                 if (userRes.data.role === 'student') {

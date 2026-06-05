@@ -266,7 +266,8 @@ const DPPScreen = ({ navigation, route }) => {
             const classId = classIdStr ? Number(classIdStr) : null;
             setSelectedClassId(classId);
 
-            const cacheKey = 'dpps_cache_' + (folder ? folder.id : 'root');
+            // Bug Fix: Include classId in cache key so different classes never share a cache.
+            const cacheKey = 'dpps_cache_' + (classId || 'global') + '_' + (folder ? folder.id : 'root');
             const cachedData = await getPermanentCache(cacheKey);
             let hasCache = false;
             if (cachedData) {
@@ -278,9 +279,20 @@ const DPPScreen = ({ navigation, route }) => {
                     setDppXp(parsed.xp || 0);
                     if (!folder && parsed.progress) setProgressData(parsed.progress);
                     
+                    // Bug Fix: Restore user role from cache so FAB buttons appear instantly.
+                    const cachedRole = await AsyncStorage.getItem('cached_user_role');
+                    const cachedBatchId = await AsyncStorage.getItem('cached_user_batch_id');
+                    if (cachedRole) {
+                        setUser({ role: cachedRole, batch_id: cachedBatchId ? Number(cachedBatchId) : null });
+                    }
+
+                    // Bug Fix: Filter recent DPPs by current class group.
                     const recentStr = await AsyncStorage.getItem('recent_dpps_v1') || '[]';
                     const recents = JSON.parse(recentStr);
-                    const recs = recents.filter(d => Date.now() - d.openedAt < 24 * 60 * 60 * 1000);
+                    const recs = recents.filter(d =>
+                        Date.now() - d.openedAt < 24 * 60 * 60 * 1000 &&
+                        (classId ? d.class_group_id === classId : true)
+                    );
                     setRecentDpps(recs);
                     
                     await loadSavedDppTimes(parsed.dpps || [], recs);
@@ -337,7 +349,7 @@ const DPPScreen = ({ navigation, route }) => {
                     setProgressData(progress);
                 }
 
-                const cacheKey = 'dpps_cache_' + (folder ? folder.id : 'root');
+                // Bug Fix: Save with class-aware cache key.
                 await savePermanentCache(cacheKey, {
                     dpps: fetchedDpps,
                     folders: fetchedFolders,
@@ -350,8 +362,7 @@ const DPPScreen = ({ navigation, route }) => {
                 if (!folder) {
                     const recentStr = await AsyncStorage.getItem('recent_dpps_v1') || '[]';
                     const recents = JSON.parse(recentStr);
-                    // Build a set of all DPP IDs currently on the server (across all folders).
-                    // This purges deleted DPPs from the recents list so they don't ghost-appear.
+                    // Purge deleted DPPs from recents, also filter by current class.
                     const allFetchedDppIds = new Set(fetchedDpps.map(d => d.id));
                     const cleanedRecents = recents.filter(d =>
                         Date.now() - d.openedAt < 24 * 60 * 60 * 1000 &&
@@ -360,7 +371,8 @@ const DPPScreen = ({ navigation, route }) => {
                     if (cleanedRecents.length !== recents.length) {
                         await AsyncStorage.setItem('recent_dpps_v1', JSON.stringify(cleanedRecents));
                     }
-                    recs = cleanedRecents;
+                    // Show only current class recents in UI
+                    recs = cleanedRecents.filter(d => classId ? d.class_group_id === classId : true);
                     setRecentDpps(recs);
                 }
                 await loadSavedDppTimes(fetchedDpps, recs);

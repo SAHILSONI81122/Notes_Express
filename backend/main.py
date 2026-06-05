@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
-from backend.routes import auth, users, notes, dpp, tracking, batches, class_groups, doubts
+from backend.routes import auth, users, notes, dpp, tracking, batches, class_groups, doubts, upload
 from backend.database.database import engine, Base
 import logging
 import os
@@ -77,6 +77,7 @@ app.include_router(tracking.router)
 app.include_router(batches.router)
 app.include_router(class_groups.router)
 app.include_router(doubts.router)
+app.include_router(upload.router)
 
 # ── Health check ───────────────────────────────────────────────────────────────
 @app.get("/health", tags=["system"])

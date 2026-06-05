@@ -11,18 +11,9 @@ import Constants from 'expo-constants';
 //   Local (Physical Device):  http://192.168.29.90:8000
 //   Production:               https://api.yourdomain.com
 //
-// If the env var is not set, we fall back to a platform-aware default for local dev.
-const _envApiUrl = process.env.EXPO_PUBLIC_API_URL;
-
-function getDefaultApiUrl() {
-  if (Platform.OS === 'android') {
-    return 'http://10.0.2.2:8000';   // Android Emulator → host machine
-  }
-  // Physical devices cannot connect to 127.0.0.1, they need the Mac's IP
-  return 'http://192.168.1.10:8000'; 
-}
-
-export const API_URL = _envApiUrl || getDefaultApiUrl();
+// Hardcoded for production.
+// If you want to switch back to local dev, you can restore the process.env.EXPO_PUBLIC_API_URL logic.
+export const API_URL = 'https://notes-express.vercel.app';
 
 console.log('App is connecting to:', API_URL);
 
@@ -110,9 +101,48 @@ export const getNotes = (batchId, classGroupId = null, folderId = null, search =
 };
 
 export const uploadNote = (data) => api.post('/upload-note', data);
-export const uploadFile = (formData) => api.post('/upload-file', formData, {
-  headers: { 'Content-Type': 'multipart/form-data' }
-});
+
+const uploadToSignedUrl = async (formData, fieldName = 'file') => {
+  // Extract file from React Native FormData
+  let file;
+  if (typeof formData.getParts === 'function') {
+    file = formData.getParts().find(p => p.fieldName === fieldName);
+  } else if (formData._parts) {
+    const part = formData._parts.find(p => p[0] === fieldName);
+    file = part ? part[1] : null;
+  }
+  
+  if (!file) throw new Error("File not found in FormData");
+
+  // 1. Get Signed URL from backend
+  const res = await api.post('/get-upload-url', {
+    filename: file.name || file.fileName || `upload_${Date.now()}`,
+    content_type: file.type || file.mimeType || 'application/octet-stream'
+  });
+  
+  const { signed_url, public_url } = res.data;
+  
+  // 2. Upload file directly to Supabase
+  const response = await fetch(file.uri);
+  const blob = await response.blob();
+  
+  const uploadRes = await fetch(signed_url, {
+    method: 'PUT',
+    headers: { 'Content-Type': file.type || file.mimeType || 'application/octet-stream' },
+    body: blob
+  });
+  
+  if (!uploadRes.ok) {
+    throw new Error(`Upload failed with status ${uploadRes.status}`);
+  }
+  
+  return public_url;
+};
+
+export const uploadFile = async (formData) => {
+  const public_url = await uploadToSignedUrl(formData, 'file');
+  return { data: { file_url: public_url } };
+};
 export const uploadImagesToPdf = (formData) => api.post('/upload-images-to-pdf', formData, {
   headers: { 'Content-Type': 'multipart/form-data' }
 });
@@ -167,9 +197,10 @@ export const getClassGroups = (batchId) => api.get(`/batches/${batchId}/class_gr
 export const addMemberToClassGroup = (classGroupId, userId) => api.post(`/batches/class_groups/${classGroupId}/members/${userId}`);
 export const removeMemberFromClassGroup = (classGroupId, userId) => api.delete(`/batches/class_groups/${classGroupId}/members/${userId}`);
 
-export const updateAvatar = (formData) => api.post('/me/avatar', formData, {
-  headers: { 'Content-Type': 'multipart/form-data' }
-});
+export const updateAvatar = async (formData) => {
+  const public_url = await uploadToSignedUrl(formData, 'avatar');
+  return api.post('/me/avatar-url', { avatar_url: public_url });
+};
 
 export const sendHeartbeat = (action = null) => {
     let url = '/heartbeat';
@@ -210,14 +241,14 @@ export const getDoubtMessages = (otherUserId) => api.get(`/doubts/messages/${oth
 export const getAvailableTeachers = () => api.get('/doubts/teachers');
 export const getUnreadCount = () => api.get('/doubts/unread-count');
 export const deleteConversation = (otherUserId) => api.delete(`/doubts/conversations/${otherUserId}`);
-export const uploadChatImage = (formData) => api.post('/doubts/upload-image', formData, {
-  headers: { 'Content-Type': 'multipart/form-data' },
-  timeout: 30000,
-});
-export const uploadChatAudio = (formData) => api.post('/doubts/upload-audio', formData, {
-  headers: { 'Content-Type': 'multipart/form-data' },
-  timeout: 30000,
-});
+export const uploadChatImage = async (formData) => {
+  const public_url = await uploadToSignedUrl(formData, 'file');
+  return { data: { image_url: public_url } };
+};
+export const uploadChatAudio = async (formData) => {
+  const public_url = await uploadToSignedUrl(formData, 'file');
+  return { data: { audio_url: public_url } };
+};
 export const getLeaderboard = (classGroupId) => api.get('/leaderboard', { params: { class_group_id: classGroupId } });
 
 export const updateInstitute = (data) => api.patch('/institute', data);
