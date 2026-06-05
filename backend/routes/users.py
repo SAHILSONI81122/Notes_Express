@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, File, UploadFile
 import os
 import uuid
-import shutil
+from backend.services.storage import upload_file_to_supabase, delete_file_from_supabase
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
@@ -85,23 +85,29 @@ async def get_active_count(class_group_id: int, db: AsyncSession = Depends(get_d
 
 @router.post("/me/avatar")
 async def update_avatar(file: UploadFile = File(...), db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_active_user)):
-    file_ext = os.path.splitext(file.filename)[1]
-    file_name = f"avatar_{uuid.uuid4()}{file_ext}"
-    file_path = os.path.join(UPLOAD_DIR, file_name)
+    # Read the file bytes
+    file_bytes = await file.read()
     
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
-    
-    avatar_url = f"/uploads/{file_name}"
+    # Upload to Supabase
+    public_url = await upload_file_to_supabase(
+        file_bytes, 
+        file.filename or "avatar.jpg", 
+        file.content_type or "image/jpeg"
+    )
     
     result = await db.execute(select(User).where(User.id == current_user.id))
     user = result.scalars().first()
-    user.avatar_url = avatar_url
+    
+    # Delete old avatar from storage if exists
+    if user.avatar_url:
+        await delete_file_from_supabase(user.avatar_url)
+        
+    user.avatar_url = public_url
     db.add(user)
     await db.commit()
     await db.refresh(user)
     
-    return {"avatar_url": avatar_url}
+    return {"avatar_url": public_url}
     
 from backend.models.models import Note, DPP, Attempt, NoteCompletion
 

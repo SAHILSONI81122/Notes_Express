@@ -19,7 +19,7 @@ from backend.services.upload_validation import (
     MAX_IMAGE_SIZE_MB, MAX_AUDIO_SIZE_MB,
 )
 
-UPLOAD_DIR = "backend/uploads"
+from backend.services.storage import upload_file_to_supabase, delete_file_from_supabase
 
 router = APIRouter(prefix="/doubts", tags=["doubts"])
 
@@ -339,14 +339,13 @@ async def upload_chat_image(
         max_mb=MAX_IMAGE_SIZE_MB,
         label="Image",
     )
-    ext = os.path.splitext(file.filename or "")[1].lower()
-    file_name = f"chat_{uuid.uuid4()}{ext}"
-    file_path = os.path.join(UPLOAD_DIR, file_name)
+    public_url = await upload_file_to_supabase(
+        content, 
+        file.filename or "chat_image.jpg", 
+        file.content_type or "image/jpeg"
+    )
 
-    with open(file_path, "wb") as f:
-        f.write(content)
-
-    return {"image_url": f"/uploads/{file_name}"}
+    return {"image_url": public_url}
 
 @router.post("/upload-audio")
 async def upload_chat_audio(
@@ -364,14 +363,13 @@ async def upload_chat_audio(
         max_mb=MAX_AUDIO_SIZE_MB,
         label="Audio",
     )
-    ext = os.path.splitext(file.filename or "")[1].lower()
-    file_name = f"audio_{uuid.uuid4()}{ext}"
-    file_path = os.path.join(UPLOAD_DIR, file_name)
+    public_url = await upload_file_to_supabase(
+        content, 
+        file.filename or "chat_audio.m4a", 
+        file.content_type or "audio/m4a"
+    )
 
-    with open(file_path, "wb") as f:
-        f.write(content)
-
-    return {"audio_url": f"/uploads/{file_name}"}
+    return {"audio_url": public_url}
 
 @router.delete("/conversations/{other_user_id}")
 async def delete_conversation(
@@ -384,13 +382,21 @@ async def delete_conversation(
         raise HTTPException(status_code=400, detail="User not in a batch")
 
     # Delete all messages between current_user and other_user_id
-    await db.execute(
-        delete(Message).where(
+    # Find all messages to delete their files
+    messages_res = await db.execute(
+        select(Message).where(
             or_(
                 and_(Message.sender_id == current_user.id, Message.receiver_id == other_user_id),
                 and_(Message.sender_id == other_user_id, Message.receiver_id == current_user.id)
             )
         )
     )
+    for msg in messages_res.scalars().all():
+        if msg.image_url:
+            await delete_file_from_supabase(msg.image_url)
+        if msg.audio_url:
+            await delete_file_from_supabase(msg.audio_url)
+        await db.delete(msg)
+        
     await db.commit()
     return {"message": "Conversation deleted successfully"}

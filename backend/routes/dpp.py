@@ -19,7 +19,7 @@ from backend.services.upload_validation import (
     validate_upload,
     ALLOWED_IMAGE_EXTS, ALLOWED_IMAGE_MIMES,
     MAX_IMAGE_SIZE_MB,
-)
+from backend.services.storage import upload_file_to_supabase, delete_file_from_supabase
 from pydantic import BaseModel
 
 # Load .env so GEMINI_API_KEY is available
@@ -325,6 +325,9 @@ async def delete_dpp(dpp_id: int, db: AsyncSession = Depends(get_db), current_us
     if not dpp:
         raise HTTPException(status_code=404, detail="DPP not found")
         
+    if dpp.file_url:
+        await delete_file_from_supabase(dpp.file_url)
+        
     await db.delete(dpp)
     await db.commit()
     return {"message": "DPP deleted successfully"}
@@ -375,7 +378,7 @@ async def upload_images_ocr(
     if len(files) > 20:
         raise HTTPException(status_code=400, detail="Maximum 20 images per OCR upload.")
 
-    UPLOAD_DIR = "backend/uploads"
+    UPLOAD_DIR = "/tmp"
     image_paths = []
 
     try:
@@ -407,7 +410,15 @@ async def upload_images_ocr(
         pdf_path = os.path.join(UPLOAD_DIR, pdf_name)
         generate_dpp_pdf([combined_text], pdf_path, title)
 
-        return {"file_url": f"/uploads/{pdf_name}"}
+        with open(pdf_path, "rb") as f:
+            pdf_bytes = f.read()
+            
+        public_url = await upload_file_to_supabase(pdf_bytes, "dpp_ocr.pdf", "application/pdf")
+        
+        if os.path.exists(pdf_path):
+            os.remove(pdf_path)
+
+        return {"file_url": public_url}
 
     except HTTPException:
         raise
@@ -431,7 +442,7 @@ async def parse_images_ocr(
     if len(files) > 20:
         raise HTTPException(status_code=400, detail="Maximum 20 images per parse request.")
 
-    UPLOAD_DIR = "backend/uploads"
+    UPLOAD_DIR = "/tmp"
     image_paths = []
 
     try:

@@ -36,3 +36,4 @@ google-generativeai>=0.7,<1.0
 # ── Push Notifications ─────────────────────────────────────────────────────────
 exponent_server_sdk>=2.0,<3.0
 aiosqlite>=0.20,<1.0
+supabase>=2.3.0,<3.0

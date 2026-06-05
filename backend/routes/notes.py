@@ -19,7 +19,7 @@ from backend.services.upload_validation import (
     MAX_PDF_SIZE_MB, MAX_IMAGE_SIZE_MB,
 )
 
-UPLOAD_DIR = "backend/uploads"
+from backend.services.storage import upload_file_to_supabase, delete_file_from_supabase
 
 from pydantic import BaseModel
 
@@ -38,14 +38,8 @@ async def upload_file(file: UploadFile = File(...), current_user: User = Depends
         max_mb=MAX_PDF_SIZE_MB,
         label="File",
     )
-    ext = os.path.splitext(file.filename or "")[1].lower()
-    file_name = f"{uuid.uuid4()}{ext}"
-    file_path = os.path.join(UPLOAD_DIR, file_name)
-
-    with open(file_path, "wb") as f:
-        f.write(content)
-
-    return {"file_url": f"/uploads/{file_name}"}
+    public_url = await upload_file_to_supabase(content, file.filename or "file.bin", file.content_type or "application/octet-stream")
+    return {"file_url": public_url}
 
 @router.post("/upload-images-to-pdf")
 async def upload_images_to_pdf(files: List[UploadFile] = File(...), current_user: User = Depends(get_current_active_user)):
@@ -74,11 +68,12 @@ async def upload_images_to_pdf(files: List[UploadFile] = File(...), current_user
         if not image_list:
             raise HTTPException(status_code=400, detail="No valid images found")
 
-        pdf_name = f"{uuid.uuid4()}.pdf"
-        pdf_path = os.path.join(UPLOAD_DIR, pdf_name)
-        image_list[0].save(pdf_path, save_all=True, append_images=image_list[1:])
-
-        return {"file_url": f"/uploads/{pdf_name}"}
+        pdf_bytes = io.BytesIO()
+        image_list[0].save(pdf_bytes, format="PDF", save_all=True, append_images=image_list[1:])
+        pdf_bytes.seek(0)
+        
+        public_url = await upload_file_to_supabase(pdf_bytes.read(), "merged.pdf", "application/pdf")
+        return {"file_url": public_url}
     except HTTPException:
         raise
     except Exception as e:
@@ -243,6 +238,9 @@ async def delete_note(note_id: int, db: AsyncSession = Depends(get_db), current_
     if not note:
         raise HTTPException(status_code=404, detail="Note not found")
         
+    if note.file_url:
+        await delete_file_from_supabase(note.file_url)
+        
     await db.delete(note)
     await db.commit()
     return {"message": "Note deleted successfully"}
@@ -262,11 +260,15 @@ async def delete_folder(folder_id: int, db: AsyncSession = Depends(get_db), curr
         # 1. Delete notes
         notes_res = await db.execute(select(Note).where(Note.folder_id == fid))
         for note in notes_res.scalars().all():
+            if note.file_url:
+                await delete_file_from_supabase(note.file_url)
             await db.delete(note)
             
         # 2. Delete DPPs
         dpps_res = await db.execute(select(DPP).where(DPP.folder_id == fid))
         for dpp in dpps_res.scalars().all():
+            if dpp.file_url:
+                await delete_file_from_supabase(dpp.file_url)
             await db.delete(dpp)
             
         # 3. Delete subfolders
