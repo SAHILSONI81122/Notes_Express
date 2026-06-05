@@ -19,6 +19,7 @@ from backend.services.upload_validation import (
     validate_upload,
     ALLOWED_IMAGE_EXTS, ALLOWED_IMAGE_MIMES,
     MAX_IMAGE_SIZE_MB,
+)
 from backend.services.storage import upload_file_to_supabase, delete_file_from_supabase
 from pydantic import BaseModel
 
