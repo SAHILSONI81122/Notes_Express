@@ -3,15 +3,14 @@ import uuid
 from supabase import create_client, Client
 from fastapi import HTTPException
 
-SUPABASE_URL = os.environ.get("SUPABASE_URL")
-SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
-
 BUCKET_NAME = "notes-express-uploads"
 
 def get_supabase_client() -> Client:
-    if not SUPABASE_URL or not SUPABASE_KEY:
-        raise HTTPException(status_code=500, detail="Supabase Storage credentials are not configured.")
-    return create_client(SUPABASE_URL, SUPABASE_KEY)
+    supabase_url = os.environ.get("SUPABASE_URL")
+    supabase_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+    if not supabase_url or not supabase_key:
+        raise HTTPException(status_code=500, detail=f"Supabase Storage credentials are not configured. URL exists: {bool(supabase_url)}, KEY exists: {bool(supabase_key)}")
+    return create_client(supabase_url, supabase_key)
 
 async def upload_file_to_supabase(file_bytes: bytes, file_name: str, content_type: str) -> str:
     """
