@@ -23,17 +23,46 @@ const SplashScreen = ({ navigation }) => {
         try {
             const token = await initializeAuthToken();
             if (token) {
-                const userRes = await getMe();
-                if (userRes.data.batch_id) {
-                    navigation.replace('MainApp');
-                } else {
-                    navigation.replace('CoachingSelectionScreen');
+                try {
+                    const userRes = await getMe();
+                    // Cache the successful response for offline use
+                    await AsyncStorage.setItem('cached_user_profile', JSON.stringify(userRes.data));
+                    
+                    if (userRes.data.batch_id) {
+                        navigation.replace('MainApp');
+                    } else {
+                        navigation.replace('CoachingSelectionScreen');
+                    }
+                } catch (e) {
+                    if (e.response && e.response.status === 401) {
+                        // Token is truly expired/invalid, do not use cache
+                        console.log("Token expired, logging out.");
+                        await clearSession();
+                        navigation.replace('Login');
+                        return;
+                    }
+                    console.log("SplashScreen network error, trying cache:", e);
+                    // Network error! Let's check for a cached profile instead of logging out
+                    const cachedProfileStr = await AsyncStorage.getItem('cached_user_profile');
+                    if (cachedProfileStr) {
+                        const cachedUser = JSON.parse(cachedProfileStr);
+                        if (cachedUser.batch_id) {
+                            navigation.replace('MainApp');
+                        } else {
+                            navigation.replace('CoachingSelectionScreen');
+                        }
+                    } else {
+                        // No cache available, must log in again
+                        await clearSession();
+                        navigation.replace('Login');
+                    }
                 }
             } else {
                 await clearSession();
                 navigation.replace('Login');
             }
         } catch (e) {
+            console.log("Critical boot error:", e);
             await clearSession();
             navigation.replace('Login');
         }

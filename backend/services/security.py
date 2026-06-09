@@ -27,8 +27,8 @@ if SECRET_KEY == "INSECURE_DEV_KEY_CHANGE_BEFORE_DEPLOY":
     )
 
 ALGORITHM = "HS256"
-# 60 minutes default; override via env for dev convenience
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
+# 30 days default for mobile app persistent login
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES", "43200"))
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
