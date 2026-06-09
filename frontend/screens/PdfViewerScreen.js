@@ -72,21 +72,19 @@ const PdfViewerScreen = ({ route, navigation }) => {
 
         if (Platform.OS === 'android') {
             // ─── Android: In-app PDF rendering via PDF.js inside WebView ───────────────
+            // We pass the URL directly to PDF.js (avoids base64 memory issues for large PDFs)
             try {
-                let localPath;
+                let pdfSrc;
                 if (isLocalFile) {
-                    localPath = pdfUrl.startsWith('file://') ? pdfUrl : `file://${pdfUrl}`;
+                    // For local files, we still need to read as base64
+                    const localPath = pdfUrl.startsWith('file://') ? pdfUrl : `file://${pdfUrl}`;
+                    const base64Pdf = await FileSystem.readAsStringAsync(localPath, { encoding: FileSystem.EncodingType.Base64 });
+                    pdfSrc = `data:application/pdf;base64,${base64Pdf}`;
                 } else {
-                    const tempPath = `${FileSystem.cacheDirectory}preview_${Date.now()}.pdf`;
-                    const downloadRes = await FileSystem.downloadAsync(pdfUrl, tempPath);
-                    if (downloadRes.status !== 200) throw new Error('Failed to download PDF');
-                    localPath = downloadRes.uri;
+                    // For remote URLs, pass directly to PDF.js — no download needed
+                    pdfSrc = JSON.stringify(pdfUrl);
                 }
 
-                // Read PDF as base64 to inject into PDF.js
-                const base64Pdf = await FileSystem.readAsStringAsync(localPath, { encoding: FileSystem.EncodingType.Base64 });
-                
-                // HTML wrapper using PDF.js CDN
                 const htmlContent = `
                 <!DOCTYPE html>
                 <html>
@@ -94,46 +92,47 @@ const PdfViewerScreen = ({ route, navigation }) => {
                     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5.0, user-scalable=yes"/>
                     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
                     <style>
+                        * { box-sizing: border-box; }
                         body { margin: 0; background: ${isDarkMode ? '#1E293B' : '#F1F5F9'}; display: flex; flex-direction: column; align-items: center; padding: 10px; }
                         canvas { max-width: 100%; height: auto; margin-bottom: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-radius: 8px; }
-                        #loader { color: ${isDarkMode ? '#94A3B8' : '#64748B'}; font-family: sans-serif; margin-top: 50px; }
+                        #loader { color: ${isDarkMode ? '#94A3B8' : '#64748B'}; font-family: sans-serif; margin-top: 50px; font-size: 16px; }
+                        #error { color: #EF4444; font-family: sans-serif; margin-top: 50px; font-size: 14px; text-align: center; padding: 20px; }
                     </style>
                 </head>
                 <body>
                     <div id="loader">Rendering Document...</div>
-                    <div id="pdf-container"></div>
+                    <div id="pdf-container" style="display:flex; flex-direction:column; align-items:center; width:100%;"></div>
                     <script>
                         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
-                        var pdfData = atob('${base64Pdf}');
-                        var loadingTask = pdfjsLib.getDocument({data: pdfData});
+                        
+                        var pdfSource = ${pdfSrc.startsWith('"') ? pdfSrc : `"${pdfSrc}"`};
+                        var loadingTask = pdfjsLib.getDocument(pdfSource);
                         
                         loadingTask.promise.then(function(pdf) {
                             document.getElementById('loader').style.display = 'none';
                             var container = document.getElementById('pdf-container');
-                            
-                            for (var pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+                            var renderPage = function(pageNum) {
                                 pdf.getPage(pageNum).then(function(page) {
-                                    var scale = 1.5; // Good balance of quality and performance
+                                    var scale = window.innerWidth / page.getViewport({scale: 1}).width;
                                     var viewport = page.getViewport({scale: scale});
-                                    
                                     var canvas = document.createElement('canvas');
                                     var context = canvas.getContext('2d');
                                     canvas.height = viewport.height;
                                     canvas.width = viewport.width;
-                                    
-                                    // Order pages correctly
-                                    canvas.style.order = page.pageNumber;
+                                    canvas.style.width = '100%';
                                     container.appendChild(canvas);
-                                    
-                                    var renderContext = {
-                                        canvasContext: context,
-                                        viewport: viewport
-                                    };
-                                    page.render(renderContext);
+                                    page.render({ canvasContext: context, viewport: viewport });
                                 });
+                            };
+                            for (var i = 1; i <= pdf.numPages; i++) {
+                                renderPage(i);
                             }
                         }).catch(function(reason) {
-                            document.getElementById('loader').innerText = "Error loading PDF: " + reason;
+                            document.getElementById('loader').style.display = 'none';
+                            var err = document.createElement('div');
+                            err.id = 'error';
+                            err.innerText = 'Error loading PDF: ' + reason;
+                            document.body.appendChild(err);
                         });
                     </script>
                 </body>
