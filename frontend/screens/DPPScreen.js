@@ -1042,7 +1042,7 @@ const DPPScreen = ({ navigation, route }) => {
             } else {
                 if (dpp.file_url) {
                     navigation.navigate('PdfViewer', {
-                        pdfUrl: `${API_URL}${dpp.file_url}`,
+                        pdfUrl: dpp.file_url,
                         title: dpp.title,
                         userIdentifier: user?.phone || user?.name || user?.email || 'STUDENT',
                         noteId: dpp.id

@@ -563,7 +563,7 @@ const NotesScreen = ({ navigation, route }) => {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             // Open the PDF in-app immediately after download
             navigation.navigate('PdfViewer', {
-                pdfUrl: `${API_URL}${noteItem.file_url}`,
+                pdfUrl: noteItem.file_url,
                 title: noteItem.title,
                 userIdentifier: user?.phone || user?.name || user?.email || 'STUDENT',
                 noteId: noteItem.id
@@ -596,7 +596,7 @@ const NotesScreen = ({ navigation, route }) => {
                     return;
                 }
                 navigation.navigate('PdfViewer', {
-                    pdfUrl: `${API_URL}${note.file_url}`,
+                    pdfUrl: note.file_url,
                     title: note.title,
                     userIdentifier: user?.phone || user?.name || user?.email || 'STUDENT',
                     noteId: note.id
