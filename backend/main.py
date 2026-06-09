@@ -87,3 +87,21 @@ def health_check():
 @app.get("/", tags=["system"])
 def root():
     return {"message": "Welcome to NotesExpress API"}
+
+# ── Compatibility redirect ──────────────────────────────────────────────────────
+# Old app versions prepend API_URL to file_url even when file_url is already a
+# full Supabase URL, producing broken paths like:
+#   /https://gqiudugirnhykdszcshc.supabase.co/storage/v1/object/public/...
+# This catch-all route detects that pattern and redirects to the correct URL.
+from fastapi import Request
+from fastapi.responses import RedirectResponse
+
+@app.get("/https:/{rest_of_path:path}", include_in_schema=False)
+def redirect_double_url(rest_of_path: str):
+    target = f"https://{rest_of_path}"
+    return RedirectResponse(url=target, status_code=302)
+
+@app.get("/http:/{rest_of_path:path}", include_in_schema=False)
+def redirect_double_url_http(rest_of_path: str):
+    target = f"http://{rest_of_path}"
+    return RedirectResponse(url=target, status_code=302)
