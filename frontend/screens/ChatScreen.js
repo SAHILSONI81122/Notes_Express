@@ -403,7 +403,10 @@ const ChatScreen = ({ route, navigation }) => {
             )}
 
             {/* Input Bar */}
-            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+            <KeyboardAvoidingView 
+                behavior={Platform.OS === 'ios' ? 'padding' : 'padding'} 
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 24}
+            >
                 <View style={[s.inputBar, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
                     <TouchableOpacity style={[s.plusBtn, { backgroundColor: showAttach ? colors.primary : (isDarkMode ? '#1E293B' : '#F1F5F9') }]}
                         onPress={toggleAttach} disabled={uploadingImage || isRecording} activeOpacity={0.7}>
