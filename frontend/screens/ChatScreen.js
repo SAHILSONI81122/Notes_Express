@@ -123,7 +123,7 @@ const ChatScreen = ({ route, navigation }) => {
             if (perm.status !== 'granted') { Alert.alert('Permission Required', 'Please allow access.'); return; }
             const result = useCamera
                 ? await ImagePicker.launchCameraAsync({ allowsEditing: true, quality: 0.7 })
-                : await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaType.Images, allowsEditing: true, quality: 0.7 });
+                : await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, quality: 0.7 });
             if (!result.canceled && result.assets?.[0]) await uploadAndSend(result.assets[0].uri);
         } catch (err) { Alert.alert('Error', 'Failed to pick image.'); }
     };
