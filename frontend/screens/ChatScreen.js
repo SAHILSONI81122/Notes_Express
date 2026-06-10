@@ -201,7 +201,8 @@ const ChatScreen = ({ route, navigation }) => {
             }
             setPlayingAudioId(msgId);
             await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
-            const { sound } = await Audio.Sound.createAsync({ uri: `${API_URL}${url}` });
+            const audioUri = url.startsWith('http') ? url : `${API_URL}${url}`;
+            const { sound } = await Audio.Sound.createAsync({ uri: audioUri });
             setSoundObject(sound);
             sound.setOnPlaybackStatusUpdate((status) => {
                 if (status.didJustFinish) {
@@ -271,9 +272,9 @@ const ChatScreen = ({ route, navigation }) => {
                         item._pending && { opacity: 0.55 },
                     ]}>
                         {hasImg && (
-                            <TouchableOpacity activeOpacity={0.85} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setPreviewImage(`${API_URL}${item.image_url}`); }}>
+                            <TouchableOpacity activeOpacity={0.85} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setPreviewImage(item.image_url.startsWith('http') ? item.image_url : `${API_URL}${item.image_url}`); }}>
                                 <View style={{ position: 'relative' }}>
-                                    <Image source={{ uri: `${API_URL}${item.image_url}` }}
+                                    <Image source={{ uri: item.image_url.startsWith('http') ? item.image_url : `${API_URL}${item.image_url}` }}
                                         style={[s.chatImg, { borderRadius: hasText ? 17 : 17, borderBottomLeftRadius: hasText ? 4 : (mine ? 17 : 4), borderBottomRightRadius: hasText ? 4 : (mine ? 4 : 17) }]}
                                         resizeMode="cover" />
                                     {!item._pending && (
@@ -351,7 +352,7 @@ const ChatScreen = ({ route, navigation }) => {
             {uploadingImage && (
                 <View style={[s.uploadBar, { backgroundColor: colors.primary + '12' }]}>
                     <ActivityIndicator size="small" color={colors.primary} />
-                    <Text style={[s.uploadText, { color: colors.primary, fontFamily: 'Inter-SemiBold' }]}>Uploading image...</Text>
+                    <Text style={[s.uploadText, { color: colors.primary, fontFamily: 'Inter-SemiBold' }]}>Uploading attachment...</Text>
                     <View style={[s.uploadProgress, { backgroundColor: colors.primary + '30' }]}>
                         <Animated.View style={[s.uploadProgressFill, { backgroundColor: colors.primary }]} />
                     </View>
