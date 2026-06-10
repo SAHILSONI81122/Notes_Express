@@ -234,12 +234,17 @@ const NotesScreen = ({ navigation, route }) => {
                     if (parsed.globalTotalNotes !== undefined) setGlobalTotalNotes(parsed.globalTotalNotes);
 
                     // Bug Fix 1: Restore user role from cache so FAB buttons appear instantly.
-                    const cachedRole = await AsyncStorage.getItem('cached_user_role');
-                    const cachedBatchId = await AsyncStorage.getItem('cached_user_batch_id');
-                    if (cachedRole) {
-                        setUser({ role: cachedRole, batch_id: cachedBatchId ? Number(cachedBatchId) : null });
+                    const cachedProfileStr = await AsyncStorage.getItem('cached_user_profile');
+                    if (cachedProfileStr) {
+                        const cachedUser = JSON.parse(cachedProfileStr);
+                        setUser(cachedUser);
+                    } else {
+                        const cachedRole = await AsyncStorage.getItem('cached_user_role');
+                        const cachedBatchId = await AsyncStorage.getItem('cached_user_batch_id');
+                        if (cachedRole) {
+                            setUser({ role: cachedRole, batch_id: cachedBatchId ? Number(cachedBatchId) : null });
+                        }
                     }
-                    
                     // Bug Fix 2: Filter recent notes by current class group.
                     const recentStr = await AsyncStorage.getItem('recent_notes_v1') || '[]';
                     const recents = JSON.parse(recentStr);
@@ -337,7 +342,9 @@ const NotesScreen = ({ navigation, route }) => {
             }
         } catch (err) {
             console.log("Fetch Error:", err);
-            Alert.alert("Network Error", "Could not fetch data. Try opening an offline folder.");
+            if (!hasCache) {
+                Alert.alert("Network Error", "Could not fetch data. Try opening an offline folder.");
+            }
         } finally {
             setLoading(false);
         }
@@ -558,6 +565,13 @@ const NotesScreen = ({ navigation, route }) => {
         if (downloadingNoteId === noteItem.id) return;
         setDownloadingNoteId(noteItem.id);
         try {
+            // Pre-check connectivity before attempting a potentially large download
+            const online = await isOnline();
+            if (!online) {
+                Alert.alert("No Connection", "You need an internet connection to download notes.");
+                return;
+            }
+
             await downloadNote(noteItem);
             setDownloadedNotes(prev => ({ ...prev, [noteItem.id]: true }));
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -569,7 +583,12 @@ const NotesScreen = ({ navigation, route }) => {
                 noteId: noteItem.id
             });
         } catch (err) {
-            Alert.alert("Download Failed", "Please check your connection and try again.");
+            const reason = err?.message || 'Unknown error';
+            console.error('handleDownloadNote failed:', reason);
+            Alert.alert(
+                "Download Failed",
+                `Could not download "${noteItem.title}".\n\nReason: ${reason}\n\nPlease try again or check your connection.`
+            );
         } finally {
             setDownloadingNoteId(null);
         }

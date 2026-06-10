@@ -38,7 +38,7 @@ const CoachingInfoScreen = ({ navigation }) => {
                 setEditName(displayName);
                 setEditAddress(res.data.batch?.address || '');
                 setEditLogoUrl(displayLogoUrl);
-                setEditLogoUri(displayLogoUrl ? `${API_URL}${displayLogoUrl}` : null);
+                setEditLogoUri(displayLogoUrl ? `${displayLogoUrl?.startsWith('http') ? displayLogoUrl : `\${API_URL}\${displayLogoUrl}`}` : null);
 
                 const targetBatchId = res.data.batch_id || res.data.batch?.id || (res.data.all_batches && res.data.all_batches.length > 0 ? res.data.all_batches[0].id : null);
                 
@@ -64,7 +64,7 @@ const CoachingInfoScreen = ({ navigation }) => {
             setEditName(displayName);
             setEditAddress(batch.address || '');
             setEditLogoUrl(displayLogoUrl);
-            setEditLogoUri(displayLogoUrl ? `${API_URL}${displayLogoUrl}` : null);
+            setEditLogoUri(displayLogoUrl ? `${displayLogoUrl?.startsWith('http') ? displayLogoUrl : `\${API_URL}\${displayLogoUrl}`}` : null);
         }
     }, [isEditing, batch]);
 
@@ -173,7 +173,7 @@ const CoachingInfoScreen = ({ navigation }) => {
                 <View style={[styles.infoCard, { backgroundColor: colors.card }]}>
                     <View style={[styles.logoContainer, { backgroundColor: colors.primary + '1A' }]}>
                         {displayLogoUrl ? (
-                            <Image source={{ uri: `${API_URL}${displayLogoUrl}` }} style={styles.logo} />
+                            <Image source={{ uri: `${displayLogoUrl?.startsWith('http') ? displayLogoUrl : `\${API_URL}\${displayLogoUrl}`}` }} style={styles.logo} />
                         ) : (
                             <Ionicons name="business" size={40} color={colors.primary} />
                         )}

@@ -139,7 +139,7 @@ const SplashScreen = ({ navigation }) => {
                 ]}>
                     {cachedInstituteLogoUrl ? (
                         <Image 
-                            source={{ uri: `${API_URL}${cachedInstituteLogoUrl}` }}
+                            source={{ uri: `${cachedInstituteLogoUrl?.startsWith('http') ? cachedInstituteLogoUrl : `\${API_URL}\${cachedInstituteLogoUrl}`}` }}
                             style={styles.logo}
                             resizeMode="cover"
                         />

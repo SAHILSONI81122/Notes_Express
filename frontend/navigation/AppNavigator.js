@@ -54,6 +54,7 @@ const CustomDrawerContent = (props) => {
         try {
             const res = await getMe();
             setUser(res.data);
+            await AsyncStorage.setItem('cached_user_profile', JSON.stringify(res.data));
 
             // Cache institute branding for white-label splash screen on next launch
             if (res.data.institute?.name) {
@@ -83,8 +84,14 @@ const CustomDrawerContent = (props) => {
                 }
             }
         } catch (err) {
-            console.log(err);
-            setError("Connection Failed");
+            console.log("Drawer network error, trying cache", err);
+            const cachedProfileStr = await AsyncStorage.getItem('cached_user_profile');
+            if (cachedProfileStr) {
+                const cachedUser = JSON.parse(cachedProfileStr);
+                setUser(cachedUser);
+            } else {
+                setError("Connection Failed");
+            }
         }
     };
 
@@ -136,7 +143,7 @@ const CustomDrawerContent = (props) => {
                     <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: '#111827', overflow: 'hidden', marginRight: 12, justifyContent: 'center', alignItems: 'center' }}>
                         {user?.institute?.logo_url ? (
                             <Image
-                                source={{ uri: `${API_URL}${user.institute.logo_url}` }}
+                                source={{ uri: `${user.institute.logo_url?.startsWith('http') ? user.institute.logo_url : `\${API_URL}\${user.institute.logo_url}`}` }}
                                 style={{ width: '100%', height: '100%' }}
                                 resizeMode="cover"
                             />
@@ -461,9 +468,15 @@ const AppNavigator = () => {
                 setUserToken(token);
                 try {
                     const res = await getMe();
+                    await AsyncStorage.setItem('cached_user_profile', JSON.stringify(res.data));
                     setHasBatch(!!res.data.batch_id);
                 } catch (e) {
-                    console.log("Startup Auth check failed", e);
+                    console.log("AppNavigator checkAuth failed, using cache");
+                    const cachedProfileStr = await AsyncStorage.getItem('cached_user_profile');
+                    if (cachedProfileStr) {
+                        const cachedUser = JSON.parse(cachedProfileStr);
+                        setHasBatch(!!cachedUser.batch_id);
+                    }
                 } finally {
                     setIsLoading(false);
                 }

@@ -280,10 +280,16 @@ const DPPScreen = ({ navigation, route }) => {
                     if (!folder && parsed.progress) setProgressData(parsed.progress);
                     
                     // Bug Fix: Restore user role from cache so FAB buttons appear instantly.
-                    const cachedRole = await AsyncStorage.getItem('cached_user_role');
-                    const cachedBatchId = await AsyncStorage.getItem('cached_user_batch_id');
-                    if (cachedRole) {
-                        setUser({ role: cachedRole, batch_id: cachedBatchId ? Number(cachedBatchId) : null });
+                    const cachedProfileStr = await AsyncStorage.getItem('cached_user_profile');
+                    if (cachedProfileStr) {
+                        const cachedUser = JSON.parse(cachedProfileStr);
+                        setUser(cachedUser);
+                    } else {
+                        const cachedRole = await AsyncStorage.getItem('cached_user_role');
+                        const cachedBatchId = await AsyncStorage.getItem('cached_user_batch_id');
+                        if (cachedRole) {
+                            setUser({ role: cachedRole, batch_id: cachedBatchId ? Number(cachedBatchId) : null });
+                        }
                     }
 
                     // Bug Fix: Filter recent DPPs by current class group.
@@ -379,7 +385,9 @@ const DPPScreen = ({ navigation, route }) => {
             }
         } catch (err) {
             console.log("Fetch Error:", err);
-            Alert.alert("Network Error", "Could not fetch challenges. Try opening an offline folder.");
+            if (!hasCache) {
+                Alert.alert("Network Error", "Could not fetch challenges. Try opening an offline folder.");
+            }
         } finally {
             setLoading(false);
         }
@@ -2144,7 +2152,7 @@ const DPPScreen = ({ navigation, route }) => {
                                                             {/* Avatar */}
                                                             <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: isDarkMode ? 'rgba(255,255,255,0.08)' : '#E2E8F0', justifyContent: 'center', alignItems: 'center', marginRight: 12, overflow: 'hidden' }}>
                                                                 {item.avatar_url ? (
-                                                                    <Image source={{ uri: `${API_URL}${item.avatar_url}` }} style={{ width: '100%', height: '100%' }} />
+                                                                    <Image source={{ uri: `${item.avatar_url?.startsWith('http') ? item.avatar_url : `\${API_URL}\${item.avatar_url}`}` }} style={{ width: '100%', height: '100%' }} />
                                                                 ) : (
                                                                     <Text style={{ color: isDarkMode ? '#FFF' : '#475569', fontFamily: 'Inter-Bold', fontSize: 16 }}>{initials}</Text>
                                                                 )}

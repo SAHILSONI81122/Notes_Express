@@ -95,7 +95,7 @@ const LeaderboardScreen = ({ navigation }) => {
             <View style={styles.podiumWrapper}>
                 <View style={[styles.podiumAvatarContainer, { width: size, height: size, borderRadius: size/2, borderColor: colors[0] }]}>
                     {student.avatar_url ? (
-                        <Image source={{ uri: `${API_URL}${student.avatar_url}` }} style={styles.avatarFull} />
+                        <Image source={{ uri: `${student.avatar_url?.startsWith('http') ? student.avatar_url : `\${API_URL}\${student.avatar_url}`}` }} style={styles.avatarFull} />
                     ) : (
                         <Text style={[styles.avatarTextLarge, { fontSize: size/2.5 }]}>{student.name.charAt(0).toUpperCase()}</Text>
                     )}
@@ -141,7 +141,7 @@ const LeaderboardScreen = ({ navigation }) => {
                 
                 <View style={[styles.listAvatar, !hasAnyXp && { marginLeft: 0 }]}>
                     {item.avatar_url ? (
-                        <Image source={{ uri: `${API_URL}${item.avatar_url}` }} style={styles.avatarFull} />
+                        <Image source={{ uri: `${item.avatar_url?.startsWith('http') ? item.avatar_url : `\${API_URL}\${item.avatar_url}`}` }} style={styles.avatarFull} />
                     ) : (
                         <Text style={styles.avatarTextSmall}>{item.name.charAt(0).toUpperCase()}</Text>
                     )}

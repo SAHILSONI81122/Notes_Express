@@ -186,7 +186,7 @@ const FolderNotesScreen = ({ route, navigation }) => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         try {
             const startTime = Date.now();
-            const url = `${API_URL}${note.file_url}`;
+            const url = `${note.file_url?.startsWith('http') ? note.file_url : `\${API_URL}\${note.file_url}`}`;
             await WebBrowser.openBrowserAsync(url);
             const elapsedSeconds = Math.round((Date.now() - startTime) / 1000);
 

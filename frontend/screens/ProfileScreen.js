@@ -107,7 +107,7 @@ const ProfileScreen = ({ navigation }) => {
                     >
                         {user?.avatar_url ? (
                             <Image 
-                                source={{ uri: `${API_URL}${user.avatar_url}` }} 
+                                source={{ uri: `${user.avatar_url?.startsWith('http') ? user.avatar_url : `\${API_URL}\${user.avatar_url}`}` }} 
                                 style={{ width: '100%', height: '100%' }} 
                             />
                         ) : (

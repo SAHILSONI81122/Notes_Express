@@ -35,20 +35,40 @@ export const isNoteDownloaded = async (noteId) => {
 };
 
 export const downloadNote = async (note) => {
-    try {
-        await initOfflineManager();
-        const localUri = getLocalNotePath(note.id);
-        const remoteUrl = `${API_URL}${note.file_url}`;
-        
-        const downloadRes = await FileSystem.downloadAsync(remoteUrl, localUri);
-        if (downloadRes.status !== 200) {
-            throw new Error('Download failed');
-        }
-        return localUri;
-    } catch (error) {
-        console.error("Download Error:", error);
-        throw error;
+    if (!note?.file_url) {
+        throw new Error('This note has no file attached.');
     }
+
+    await initOfflineManager();
+    const localUri = getLocalNotePath(note.id);
+    const remoteUrl = note.file_url;
+
+    // createDownloadResumable is the recommended Expo API for large files —
+    // it handles network interruptions and large payloads better than downloadAsync.
+    return new Promise((resolve, reject) => {
+        const task = FileSystem.createDownloadResumable(
+            remoteUrl,
+            localUri,
+            { sessionType: FileSystem.FileSystemSessionType.BACKGROUND }
+        );
+
+        task.downloadAsync()
+            .then(result => {
+                if (!result) {
+                    reject(new Error('Download returned no result. Check your connection.'));
+                    return;
+                }
+                if (result.status !== 200) {
+                    reject(new Error(`Server returned status ${result.status}. The file may be unavailable.`));
+                    return;
+                }
+                resolve(localUri);
+            })
+            .catch(error => {
+                console.error('Download Error:', error);
+                reject(error);
+            });
+    });
 };
 
 export const deleteLocalNote = async (noteId) => {

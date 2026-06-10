@@ -263,7 +263,7 @@ const DoubtsScreen = ({ navigation }) => {
                                                         <View style={[styles.teacherAv, { backgroundColor: roleColor + '18' }]}>
                                                             {teacher.avatar_url ? (
                                                                 <Image
-                                                                    source={{ uri: `${API_URL}${teacher.avatar_url}` }}
+                                                                    source={{ uri: `${teacher.avatar_url?.startsWith('http') ? teacher.avatar_url : `\${API_URL}\${teacher.avatar_url}`}` }}
                                                                     style={styles.teacherAvImg}
                                                                 />
                                                             ) : (
@@ -346,7 +346,7 @@ const DoubtsScreen = ({ navigation }) => {
                                                         <View style={[styles.avRing, { borderColor: roleColor + '40' }]}>
                                                             <View style={[styles.av, { backgroundColor: roleColor + '18' }]}>
                                                                 {item.avatar_url ? (
-                                                                    <Image source={{ uri: `${API_URL}${item.avatar_url}` }} style={styles.avImg} />
+                                                                    <Image source={{ uri: `${item.avatar_url?.startsWith('http') ? item.avatar_url : `\${API_URL}\${item.avatar_url}`}` }} style={styles.avImg} />
                                                                 ) : (
                                                                     <Text style={[styles.avText, { color: roleColor, fontFamily: 'Inter-Bold' }]}>
                                                                         {getInitials(item.user_name)}
