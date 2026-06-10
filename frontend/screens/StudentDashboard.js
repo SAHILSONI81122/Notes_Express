@@ -316,6 +316,7 @@ const StudentDashboard = ({ route, navigation }) => {
             getMe().then(async res => {
                 const userData = res.data;
                 setUser(userData);
+                await AsyncStorage.setItem('cached_user', JSON.stringify(userData));
                 
                 const id = await AsyncStorage.getItem('selectedClassGroupId');
                 const numericId = id ? Number(id) : null;
@@ -345,7 +346,18 @@ const StudentDashboard = ({ route, navigation }) => {
                         }
                     }).catch(console.log);
                 }
-            }).catch(err => console.log(err));
+            }).catch(async err => {
+                console.log("getMe error:", err);
+                const cachedUser = await AsyncStorage.getItem('cached_user');
+                if (cachedUser) {
+                    const parsedUser = JSON.parse(cachedUser);
+                    setUser(parsedUser);
+                    if (parsedUser.role !== 'student') {
+                        const id = await AsyncStorage.getItem('selectedClassGroupId');
+                        setSelectedClassId(id ? Number(id) : null);
+                    }
+                }
+            });
 
             AsyncStorage.getItem('selectedClassName').then(name => setSelectedClassName(name));
 

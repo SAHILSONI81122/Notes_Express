@@ -2,16 +2,16 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
 import * as Network from 'expo-network';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 /**
- * OfflineBanner — slides down from the top when the device loses internet.
- * Slides back up automatically when connectivity is restored.
- *
- * Usage: place it just inside your root SafeAreaProvider / ThemeProvider.
+ * OfflineBanner — slides up from the bottom when the device loses internet.
+ * Slides back down automatically when connectivity is restored.
  */
 const OfflineBanner = () => {
   const [isOffline, setIsOffline] = useState(false);
-  const slideAnim = useRef(new Animated.Value(-60)).current;
+  const slideAnim = useRef(new Animated.Value(100)).current;
+  const insets = useSafeAreaInsets();
 
   const show = () => {
     Animated.spring(slideAnim, {
@@ -24,7 +24,7 @@ const OfflineBanner = () => {
 
   const hide = () => {
     Animated.timing(slideAnim, {
-      toValue: -60,
+      toValue: 100,
       duration: 300,
       useNativeDriver: true,
     }).start();
@@ -45,7 +45,6 @@ const OfflineBanner = () => {
     };
 
     checkNetwork();
-    // Poll every 5 seconds — lightweight enough for mobile
     interval = setInterval(checkNetwork, 5000);
 
     return () => clearInterval(interval);
@@ -55,7 +54,13 @@ const OfflineBanner = () => {
 
   return (
     <Animated.View
-      style={[styles.banner, { transform: [{ translateY: slideAnim }] }]}
+      style={[
+        styles.banner, 
+        { 
+          transform: [{ translateY: slideAnim }],
+          paddingBottom: Math.max(insets.bottom, 16)
+        }
+      ]}
     >
       <Ionicons name="cloud-offline-outline" size={18} color="#fff" style={styles.icon} />
       <Text style={styles.text}>No Internet Connection</Text>
@@ -66,7 +71,7 @@ const OfflineBanner = () => {
 const styles = StyleSheet.create({
   banner: {
     position: 'absolute',
-    top: 0,
+    bottom: 0,
     left: 0,
     right: 0,
     zIndex: 9999,
@@ -74,16 +79,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 10,
+    paddingVertical: 12,
     paddingHorizontal: 16,
-    // Push below the status bar on most devices
-    paddingTop: 44,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 10,
   },
   icon: { marginRight: 8 },
   text: {
     color: '#FFFFFF',
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: 'Inter-Bold',
   },
 });
 
