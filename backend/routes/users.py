@@ -157,22 +157,8 @@ async def get_leaderboard(class_group_id: int = None, db: AsyncSession = Depends
             user_class_groups.c.class_group_id == class_group_id,
             User.role == RoleEnum.student
         )
-        # Note XP
-        note_query = select(NoteCompletion.user_id, func.count(func.distinct(NoteCompletion.note_id))).join(Note).where(
-            Note.class_group_id == class_group_id,
-            NoteCompletion.completed_at >= start_of_week,
-            NoteCompletion.is_completed == True
-        ).group_by(NoteCompletion.user_id)
-        # DPP XP
-        dpp_query = select(Attempt.user_id, func.count(func.distinct(Attempt.dpp_id))).join(DPP).where(
-            DPP.class_group_id == class_group_id,
-            Attempt.completed == True,
-            Attempt.submitted_at >= start_of_week
-        ).group_by(Attempt.user_id)
     else:
         if current_user.role == RoleEnum.student:
-            # For students, only show students from class groups they are part of.
-            # If they are not in any class groups, return empty leaderboard.
             user_res = await db.execute(
                 select(User).where(User.id == current_user.id).options(selectinload(User.class_groups))
             )
@@ -190,55 +176,29 @@ async def get_leaderboard(class_group_id: int = None, db: AsyncSession = Depends
                 user_class_groups.c.class_group_id.in_(user_cg_ids),
                 User.role == RoleEnum.student
             ).distinct()
-            
-            # Note XP
-            note_query = select(NoteCompletion.user_id, func.count(func.distinct(NoteCompletion.note_id))).join(Note).where(
-                Note.class_group_id.in_(user_cg_ids),
-                NoteCompletion.completed_at >= start_of_week,
-                NoteCompletion.is_completed == True
-            ).group_by(NoteCompletion.user_id)
-            
-            # DPP XP
-            dpp_query = select(Attempt.user_id, func.count(func.distinct(Attempt.dpp_id))).join(DPP).where(
-                DPP.class_group_id.in_(user_cg_ids),
-                Attempt.completed == True,
-                Attempt.submitted_at >= start_of_week
-            ).group_by(Attempt.user_id)
         else:
             # Global batch students (for admin/teacher)
             students_query = select(User).where(
                 User.batch_id == current_user.batch_id,
                 User.role == RoleEnum.student
             )
-            # Note XP
-            note_query = select(NoteCompletion.user_id, func.count(func.distinct(NoteCompletion.note_id))).join(Note).where(
-                Note.batch_id == current_user.batch_id,
-                NoteCompletion.completed_at >= start_of_week,
-                NoteCompletion.is_completed == True
-            ).group_by(NoteCompletion.user_id)
-            # DPP XP
-            dpp_query = select(Attempt.user_id, func.count(func.distinct(Attempt.dpp_id))).join(DPP).where(
-                DPP.batch_id == current_user.batch_id,
-                Attempt.completed == True,
-                Attempt.submitted_at >= start_of_week
-            ).group_by(Attempt.user_id)
         
     students = (await db.execute(students_query)).scalars().all()
-    note_counts = dict((await db.execute(note_query)).all())
-    dpp_counts = dict((await db.execute(dpp_query)).all())
+    
+    # Remove potential duplicates if distinct didn't perfectly filter
+    unique_students = {s.id: s for s in students}.values()
     
     leaderboard_data = []
     has_any_xp = False
-    for s in students:
-        calculated_xp = (note_counts.get(s.id, 0) * 10) + (dpp_counts.get(s.id, 0) * 50)
-        if calculated_xp > 0:
+    for s in unique_students:
+        if s.xp > 0:
             has_any_xp = True
         leaderboard_data.append({
             "id": s.id,
             "name": s.name,
             "avatar_url": s.avatar_url,
-            "xp": calculated_xp,
-            "level": (calculated_xp // 500) + 1
+            "xp": s.xp,
+            "level": s.level
         })
         
     # Sort students by XP descending, and then by name alphabetically for ties (like 0 XP)

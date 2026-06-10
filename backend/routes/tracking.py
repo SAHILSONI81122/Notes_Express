@@ -52,14 +52,15 @@ async def toggle_note_completion(
             db.add(existing)
             await db.commit()
             
+            user_res = await db.execute(select(User).where(User.id == current_user.id))
+            old_user = user_res.scalars().first()
+            old_xp = old_user.xp
+
             # Recalculate XP and streak
             user_obj, new_note_xp, _ = await recalculate_user_xp_and_streak(current_user.id, db)
             
-            # Fetch updated user to get correct streak info
-            user_res = await db.execute(select(User).where(User.id == current_user.id))
-            updated_user = user_res.scalars().first()
-            is_bonus_day = updated_user.streak_count > 0 and updated_user.streak_count % 6 == 0
-            xp_gained = 40 if is_bonus_day else 20
+            xp_gained = user_obj.xp - old_xp
+            is_bonus_day = user_obj.streak_count > 0 and user_obj.streak_count % 6 == 0
             
             return {"completed": True, "note_id": note_id, "xp_gained": xp_gained, "streak_bonus": is_bonus_day, "coins_gained": 20, "new_note_xp": new_note_xp}
     else:
@@ -68,14 +69,15 @@ async def toggle_note_completion(
         db.add(nc)
         await db.commit()
         
+        user_res = await db.execute(select(User).where(User.id == current_user.id))
+        old_user = user_res.scalars().first()
+        old_xp = old_user.xp
+
         # Recalculate XP and streak
         user_obj, new_note_xp, _ = await recalculate_user_xp_and_streak(current_user.id, db)
         
-        # Fetch updated user to get correct streak info
-        user_res = await db.execute(select(User).where(User.id == current_user.id))
-        updated_user = user_res.scalars().first()
-        is_bonus_day = updated_user.streak_count > 0 and updated_user.streak_count % 6 == 0
-        xp_gained = 40 if is_bonus_day else 20
+        xp_gained = user_obj.xp - old_xp
+        is_bonus_day = user_obj.streak_count > 0 and user_obj.streak_count % 6 == 0
         
         return {"completed": True, "note_id": note_id, "xp_gained": xp_gained, "streak_bonus": is_bonus_day, "coins_gained": 20, "new_note_xp": new_note_xp}
 
@@ -120,6 +122,10 @@ async def toggle_dpp_completion(
         
         return {"completed": False, "dpp_id": dpp_id, "coins_lost": 50, "new_dpp_xp": new_dpp_xp}
     else:
+        user_res = await db.execute(select(User).where(User.id == current_user.id))
+        old_user = user_res.scalars().first()
+        old_xp = old_user.xp
+
         attempt = Attempt(
             user_id=current_user.id,
             dpp_id=dpp_id,
@@ -134,11 +140,8 @@ async def toggle_dpp_completion(
         # Recalculate XP and streak
         user_obj, _, new_dpp_xp = await recalculate_user_xp_and_streak(current_user.id, db)
         
-        # Fetch updated user to get correct streak info
-        user_res = await db.execute(select(User).where(User.id == current_user.id))
-        updated_user = user_res.scalars().first()
-        is_bonus_day = updated_user.streak_count > 0 and updated_user.streak_count % 6 == 0
-        xp_gained = int(50 * (2 if is_bonus_day else 1) * updated_user.xp_booster_multiplier)
+        xp_gained = user_obj.xp - old_xp
+        is_bonus_day = user_obj.streak_count > 0 and user_obj.streak_count % 6 == 0
         
         return {"completed": True, "dpp_id": dpp_id, "xp_gained": xp_gained, "streak_bonus": is_bonus_day, "coins_gained": 50, "new_dpp_xp": new_dpp_xp}
 
@@ -337,15 +340,17 @@ async def submit_dpp(attempt: AttemptCreate, db: AsyncSession = Depends(get_db),
         )
         db.add(new_attempt)
 
+    user_res = await db.execute(select(User).where(User.id == current_user.id))
+    old_user = user_res.scalars().first()
+    old_xp = old_user.xp
+
     await db.commit()
 
     # Recalculate XP
     user_obj, _, new_dpp_xp = await recalculate_user_xp_and_streak(current_user.id, db)
 
-    # Return accurate xp_gained based on multipliers
+    xp_gained = user_obj.xp - old_xp
     is_bonus_day = user_obj.streak_count > 0 and user_obj.streak_count % 6 == 0
-    base_xp = max(10, attempt.correct_questions * 10) if attempt.questions_attempted > 0 else 50
-    xp_gained = int(base_xp * (2 if is_bonus_day else 1) * user_obj.xp_booster_multiplier)
 
     return {"message": "Attempt recorded", "xp_gained": xp_gained, "streak_bonus": is_bonus_day, "new_dpp_xp": new_dpp_xp}
 
