@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from backend.database.database import get_db
 from backend.models.models import User
-from backend.schemas.schemas import UserCreate, UserOut, Token
+from backend.schemas.schemas import UserCreate, UserOut, Token, PushTokenRequest
 from backend.services.security import get_password_hash, verify_password, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES, get_current_active_user
 from datetime import timedelta
 
@@ -109,7 +109,7 @@ async def get_me(db: AsyncSession = Depends(get_db), current_user: User = Depend
     return current_user
 
 @router.put("/push-token")
-async def update_push_token(request: __import__("backend.schemas.schemas", fromlist=["PushTokenRequest"]).PushTokenRequest, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_active_user)):
+async def update_push_token(request: PushTokenRequest, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_active_user)):
     user_res = await db.execute(select(User).where(User.id == current_user.id))
     user = user_res.scalars().first()
     if user:
