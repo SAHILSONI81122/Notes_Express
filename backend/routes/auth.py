@@ -77,9 +77,9 @@ async def get_me(db: AsyncSession = Depends(get_db), current_user: User = Depend
     from sqlalchemy.orm import selectinload
 
     if current_user.role == RoleEnum.student:
-        from backend.routes.tracking import recalculate_user_xp_and_streak
+        from backend.routes.tracking import sync_user_streaks_and_boosters
         # Automatically sync / recalculate the user's XP and level on profile query
-        await recalculate_user_xp_and_streak(current_user.id, db)
+        await sync_user_streaks_and_boosters(current_user.id, db)
         
         # Reload user to ensure relationships are loaded
         user_res = await db.execute(
