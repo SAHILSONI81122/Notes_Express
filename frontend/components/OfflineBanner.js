@@ -32,23 +32,37 @@ const OfflineBanner = () => {
 
   useEffect(() => {
     let interval;
+    let timeout;
 
     const checkNetwork = async () => {
       try {
         const state = await Network.getNetworkStateAsync();
-        const offline = !state.isConnected || !state.isInternetReachable;
-        setIsOffline(offline);
-        offline ? show() : hide();
-      } catch (_) {
-        // silently ignore network check errors
-      }
+        // Treat as connected if isInternetReachable is true, or if it's null (sometimes null on iOS simulators)
+        const isConnected = state.isConnected && state.isInternetReachable !== false;
+        
+        if (!isConnected && !isOffline) {
+            setIsOffline(true);
+            show();
+            timeout = setTimeout(() => {
+                hide();
+                setTimeout(() => setIsOffline(false), 300);
+            }, 4000);
+        } else if (isConnected && isOffline) {
+            hide();
+            setTimeout(() => setIsOffline(false), 300);
+            if (timeout) clearTimeout(timeout);
+        }
+      } catch (_) {}
     };
 
     checkNetwork();
     interval = setInterval(checkNetwork, 5000);
 
-    return () => clearInterval(interval);
-  }, []);
+    return () => {
+        clearInterval(interval);
+        if (timeout) clearTimeout(timeout);
+    };
+  }, [isOffline]);
 
   if (!isOffline) return null;
 
