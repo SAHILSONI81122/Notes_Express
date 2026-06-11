@@ -266,8 +266,17 @@ const DPPScreen = ({ navigation, route }) => {
             const classId = classIdStr ? Number(classIdStr) : null;
             setSelectedClassId(classId);
 
-            // Bug Fix: Include classId in cache key so different classes never share a cache.
-            const cacheKey = 'dpps_cache_' + (classId || 'global') + '_' + (folder ? folder.id : 'root');
+            let currentBatchId = 'none';
+            const cachedProfileStr = await AsyncStorage.getItem('cached_user_profile');
+            if (cachedProfileStr) {
+                currentBatchId = JSON.parse(cachedProfileStr).batch_id || 'none';
+            } else {
+                const cachedBatchIdStr = await AsyncStorage.getItem('cached_user_batch_id');
+                if (cachedBatchIdStr) currentBatchId = cachedBatchIdStr;
+            }
+
+            // Bug Fix: Include batchId and classId in cache key so different classes never share a cache.
+            const cacheKey = 'dpps_cache_b' + currentBatchId + '_' + (classId || 'global') + '_' + (folder ? folder.id : 'root');
             const cachedData = await getPermanentCache(cacheKey);
             let hasCache = false;
             if (cachedData) {

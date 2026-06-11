@@ -63,7 +63,7 @@ const ProfileScreen = ({ navigation }) => {
         setIsUpdating(true);
         try {
             const formData = new FormData();
-            formData.append('file', {
+            formData.append('avatar', {
                 uri,
                 name: 'avatar.jpg',
                 type: 'image/jpeg',

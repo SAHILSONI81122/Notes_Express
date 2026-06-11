@@ -126,6 +126,10 @@ const CustomDrawerContent = (props) => {
         try {
             await AsyncStorage.removeItem('selectedClassGroupId');
             await AsyncStorage.removeItem('selectedClassName');
+            await AsyncStorage.removeItem('cached_user_profile');
+            await AsyncStorage.removeItem('cached_user_batch_id');
+            await AsyncStorage.removeItem('cached_user_role');
+            await AsyncStorage.removeItem('recent_notes_v1');
             await switchBatch(batchId);
             fetchUser();
             props.navigation.closeDrawer();

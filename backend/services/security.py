@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 load_dotenv(override=True)
 
 from backend.database.database import get_db
-from backend.models.models import User
+from backend.models.models import User, RoleEnum
 from backend.schemas.schemas import TokenData
 
 # Load from environment — MUST be set to a strong random value in production.
@@ -86,3 +86,19 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession
 
 async def get_current_active_user(current_user: User = Depends(get_current_user)):
     return current_user
+
+def check_batch_access(current_user: User, batch_id: int):
+    """
+    Verify that the user has permission to access or modify data for the given batch_id.
+    Prevents cross-tenant data leakage.
+    """
+    if current_user.role in [RoleEnum.admin, RoleEnum.teacher]:
+        allowed_batch_ids = [b.id for b in current_user.all_batches]
+        if current_user.batch_id and current_user.batch_id not in allowed_batch_ids:
+            allowed_batch_ids.append(current_user.batch_id)
+        if batch_id not in allowed_batch_ids:
+            raise HTTPException(status_code=403, detail="Access denied. You do not belong to this coaching group.")
+    else:
+        # Students can only access their primary batch
+        if current_user.batch_id != batch_id:
+            raise HTTPException(status_code=403, detail="Access denied")

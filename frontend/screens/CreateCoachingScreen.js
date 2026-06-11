@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, Alert, ActivityIndicator, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -70,7 +71,7 @@ const CreateCoachingScreen = ({ navigation }) => {
             Alert.alert("Required", "Please enter your coaching institute's name.");
             return;
         }
-        
+
         if (isUploadingLogo) {
             Alert.alert("Please Wait", "The logo is still uploading.");
             return;
@@ -82,6 +83,10 @@ const CreateCoachingScreen = ({ navigation }) => {
             await createBatch({ name, address, logo_url: logoUrl });
             await AsyncStorage.removeItem('selectedClassGroupId');
             await AsyncStorage.removeItem('selectedClassName');
+            await AsyncStorage.removeItem('cached_user_profile');
+            await AsyncStorage.removeItem('cached_user_batch_id');
+            await AsyncStorage.removeItem('cached_user_role');
+            await AsyncStorage.removeItem('recent_notes_v1');
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             Alert.alert("Success", "Coaching group created! You can now invite students and teachers.");
             navigation.replace('MainApp');
@@ -101,11 +106,11 @@ const CreateCoachingScreen = ({ navigation }) => {
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
             <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.inner}>
                 <View style={styles.header}>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                         onPress={() => {
                             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                             navigation.goBack();
-                        }} 
+                        }}
                         style={[styles.backButton, { backgroundColor: colors.card, borderColor: colors.border }]}
                     >
                         <Ionicons name="arrow-back" size={24} color={colors.text} />
@@ -115,7 +120,7 @@ const CreateCoachingScreen = ({ navigation }) => {
 
                 <View style={styles.form}>
                     <View style={styles.logoUpload}>
-                        <TouchableOpacity 
+                        <TouchableOpacity
                             style={[styles.logoCircle, { backgroundColor: isDarkMode ? '#1F2937' : '#F3F4F6', borderColor: colors.border }]}
                             onPress={pickImage}
                             disabled={isUploadingLogo}
@@ -144,29 +149,29 @@ const CreateCoachingScreen = ({ navigation }) => {
                             {logoUri ? 'Change Logo' : 'Add Institute Logo'}
                         </Text>
                     </View>
-                    
+
                     <Text style={[styles.label, { color: colors.text, fontFamily: 'Inter-Bold' }]}>Institute Name</Text>
-                    <TextInput 
-                        style={[styles.input, { backgroundColor: colors.card, color: colors.text, borderColor: colors.border, fontFamily: 'Inter-Medium' }]} 
-                        placeholder="e.g. Science Coaching Centre" 
+                    <TextInput
+                        style={[styles.input, { backgroundColor: colors.card, color: colors.text, borderColor: colors.border, fontFamily: 'Inter-Medium' }]}
+                        placeholder="e.g. Science Coaching Centre"
                         placeholderTextColor={colors.subtext}
                         value={name}
                         onChangeText={setName}
                     />
 
                     <Text style={[styles.label, { color: colors.text, fontFamily: 'Inter-Bold' }]}>Location / Address</Text>
-                    <TextInput 
-                        style={[styles.input, { backgroundColor: colors.card, color: colors.text, borderColor: colors.border, fontFamily: 'Inter-Medium', height: 120, textAlignVertical: 'top', paddingTop: 16 }]} 
-                        placeholder="Where is your institute located?" 
+                    <TextInput
+                        style={[styles.input, { backgroundColor: colors.card, color: colors.text, borderColor: colors.border, fontFamily: 'Inter-Medium', height: 120, textAlignVertical: 'top', paddingTop: 16 }]}
+                        placeholder="Where is your institute located?"
                         placeholderTextColor={colors.subtext}
                         value={address}
                         onChangeText={setAddress}
                         multiline
                     />
 
-                    <TouchableOpacity 
+                    <TouchableOpacity
                         disabled={isLoading}
-                        style={[styles.createButton, { backgroundColor: colors.primary, opacity: isLoading ? 0.7 : 1 }]} 
+                        style={[styles.createButton, { backgroundColor: colors.primary, opacity: isLoading ? 0.7 : 1 }]}
                         onPress={handleCreate}
                     >
                         {isLoading ? (
@@ -188,11 +193,11 @@ const styles = StyleSheet.create({
     container: { flex: 1 },
     inner: { flex: 1, paddingHorizontal: 24 },
     header: { flexDirection: 'row', alignItems: 'center', marginTop: 15, marginBottom: 32 },
-    backButton: { 
-        width: 44, height: 44, borderRadius: 22, 
-        justifyContent: 'center', alignItems: 'center', 
+    backButton: {
+        width: 44, height: 44, borderRadius: 22,
+        justifyContent: 'center', alignItems: 'center',
         marginRight: 16, borderWidth: 1,
-        shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 
+        shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 2
     },
     title: { fontSize: 28 },
     form: { flex: 1 },
@@ -203,12 +208,12 @@ const styles = StyleSheet.create({
     plusBadge: { position: 'absolute', bottom: 4, right: 4, width: 24, height: 24, borderRadius: 12, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#FFF', zIndex: 10 },
     uploadText: { fontSize: 14 },
     label: { fontSize: 16, marginBottom: 10, marginLeft: 4 },
-    input: { 
-        borderWidth: 1, borderRadius: 16, 
+    input: {
+        borderWidth: 1, borderRadius: 16,
         paddingHorizontal: 20, height: 58, fontSize: 16, marginBottom: 24,
         shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.03, shadowRadius: 5, elevation: 1
     },
-    createButton: { 
+    createButton: {
         borderRadius: 20, height: 62, justifyContent: 'center', alignItems: 'center', marginTop: 12,
         shadowColor: "#4F46E5", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 10, elevation: 4
     },

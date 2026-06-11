@@ -14,7 +14,7 @@ from PIL import Image
 from backend.database.database import get_db
 from backend.models.models import DPP, User, RoleEnum, Attempt
 from backend.schemas.schemas import DPPCreate, DPPOut, DPPQuestionCreate
-from backend.services.security import get_current_active_user
+from backend.services.security import get_current_active_user, check_batch_access
 from backend.services.upload_validation import (
     validate_upload,
     ALLOWED_IMAGE_EXTS, ALLOWED_IMAGE_MIMES,
@@ -203,6 +203,7 @@ router = APIRouter(tags=["dpp"])
 async def create_dpp(dpp: DPPCreate, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_active_user)):
     if current_user.role not in [RoleEnum.teacher, RoleEnum.admin]:
         raise HTTPException(status_code=403, detail="Only teachers and admins can create DPPs")
+    check_batch_access(current_user, dpp.batch_id)
     
     new_dpp = DPP(
         title=dpp.title,
@@ -266,8 +267,7 @@ async def create_dpp(dpp: DPPCreate, db: AsyncSession = Depends(get_db), current
 
 @router.get("/dpps/{batch_id}", response_model=List[DPPOut])
 async def get_dpps(batch_id: int, class_group_id: int = None, folder_id: int = None, search: str = None, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_active_user)):
-    if current_user.role == RoleEnum.student and current_user.batch_id != batch_id:
-        raise HTTPException(status_code=403, detail="Access denied")
+    check_batch_access(current_user, batch_id)
         
     query = select(DPP).where(DPP.batch_id == batch_id).options(selectinload(DPP.questions))
     if current_user.role == RoleEnum.student:

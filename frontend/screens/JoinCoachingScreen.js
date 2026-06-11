@@ -49,6 +49,10 @@ const JoinCoachingScreen = ({ navigation }) => {
             await joinBatch(code, classGroupId);
             await AsyncStorage.removeItem('selectedClassGroupId');
             await AsyncStorage.removeItem('selectedClassName');
+            await AsyncStorage.removeItem('cached_user_profile');
+            await AsyncStorage.removeItem('cached_user_batch_id');
+            await AsyncStorage.removeItem('cached_user_role');
+            await AsyncStorage.removeItem('recent_notes_v1');
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             setShowClassModal(false);
             Alert.alert("Joined!", "Welcome to the group. You can now access all class notes.");

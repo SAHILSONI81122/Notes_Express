@@ -11,7 +11,7 @@ from PIL import Image
 from backend.database.database import get_db
 from backend.models.models import Note, Folder, User, RoleEnum
 from backend.schemas.schemas import NoteCreate, NoteOut, FolderCreate, FolderOut
-from backend.services.security import get_current_active_user
+from backend.services.security import get_current_active_user, check_batch_access
 from backend.services.upload_validation import (
     validate_upload,
     ALLOWED_NOTE_EXTS, ALLOWED_NOTE_MIMES,
@@ -83,6 +83,7 @@ async def upload_images_to_pdf(files: List[UploadFile] = File(...), current_user
 async def create_folder(folder: FolderCreate, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_active_user)):
     if current_user.role not in [RoleEnum.teacher, RoleEnum.admin]:
         raise HTTPException(status_code=403, detail="Only teachers/admins can create folders")
+    check_batch_access(current_user, folder.batch_id)
     
     new_folder = Folder(
         name=folder.name,
@@ -99,8 +100,7 @@ async def create_folder(folder: FolderCreate, db: AsyncSession = Depends(get_db)
 
 @router.get("/folders/{batch_id}", response_model=List[FolderOut])
 async def get_folders(batch_id: int, class_group_id: int = None, parent_id: int = None, folder_type: str = "notes", search: str = None, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_active_user)):
-    if current_user.role == RoleEnum.student and current_user.batch_id != batch_id:
-        raise HTTPException(status_code=403, detail="Access denied")
+    check_batch_access(current_user, batch_id)
         
     query = select(Folder).where(Folder.batch_id == batch_id, Folder.folder_type == folder_type)
     if current_user.role == RoleEnum.student:
@@ -132,6 +132,7 @@ async def get_folders(batch_id: int, class_group_id: int = None, parent_id: int 
 async def upload_note(note: NoteCreate, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_active_user)):
     if current_user.role not in [RoleEnum.teacher, RoleEnum.admin]:
         raise HTTPException(status_code=403, detail="Only teachers/admins can upload notes")
+    check_batch_access(current_user, note.batch_id)
     
     new_note = Note(
         title=note.title,
@@ -178,8 +179,7 @@ async def upload_note(note: NoteCreate, db: AsyncSession = Depends(get_db), curr
 
 @router.get("/notes/{batch_id}", response_model=List[NoteOut])
 async def get_notes(batch_id: int, class_group_id: int = None, folder_id: int = None, search: str = None, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_active_user)):
-    if current_user.role == RoleEnum.student and current_user.batch_id != batch_id:
-        raise HTTPException(status_code=403, detail="Access denied")
+    check_batch_access(current_user, batch_id)
         
     query = select(Note).where(Note.batch_id == batch_id)
     if current_user.role == RoleEnum.student:
