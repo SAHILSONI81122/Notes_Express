@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, KeyboardAvoidingView, Platform, Modal, FlatList, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { CommonActions } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
@@ -56,7 +57,12 @@ const JoinCoachingScreen = ({ navigation }) => {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             setShowClassModal(false);
             Alert.alert("Joined!", "Welcome to the group. You can now access all class notes.");
-            navigation.replace('MainApp');
+            navigation.dispatch(
+                CommonActions.reset({
+                    index: 0,
+                    routes: [{ name: 'MainApp' }],
+                })
+            );
         } catch (error) {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
             Alert.alert("Join Failed", "Something went wrong while joining. Please try again.");

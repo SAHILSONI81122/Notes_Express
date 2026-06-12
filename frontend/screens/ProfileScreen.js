@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Image, Switch, Modal, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { CommonActions } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
@@ -32,7 +33,15 @@ const ProfileScreen = ({ navigation }) => {
         await clearSession();
 
         setShowLogoutModal(false);
-        navigation.replace('Login');
+        // Reset the entire navigation tree so all screens are destroyed.
+        // This prevents stale data (profile, notes, DPPs, doubts, etc.)
+        // from leaking into a different account after re-login.
+        navigation.dispatch(
+            CommonActions.reset({
+                index: 0,
+                routes: [{ name: 'Login' }],
+            })
+        );
     };
 
     const pickImage = async () => {

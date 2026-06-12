@@ -401,7 +401,7 @@ const StudentDashboard = ({ route, navigation }) => {
                         console.log("Polling progress error:", e);
                     }
                 }
-            }, 3000);
+            }, 60000);
 
             Animated.timing(fadeAnim, {
                 toValue: 1,

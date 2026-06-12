@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createDrawerNavigator, DrawerContentScrollView, DrawerItemList, DrawerItem } from '@react-navigation/drawer';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, CommonActions } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import { getMe, switchBatch, getClassGroups, createClassGroup, getUnreadCount, initializeAuthToken, API_URL } from '../api/api';
@@ -131,9 +131,15 @@ const CustomDrawerContent = (props) => {
             await AsyncStorage.removeItem('cached_user_role');
             await AsyncStorage.removeItem('recent_notes_v1');
             await switchBatch(batchId);
-            fetchUser();
-            props.navigation.closeDrawer();
-            props.navigation.navigate('Dashboard');
+            // Reset the entire navigation tree to force all screens to
+            // remount with fresh data for the new batch. This prevents
+            // stale notes/DPPs/doubts from the previous batch showing.
+            props.navigation.dispatch(
+                CommonActions.reset({
+                    index: 0,
+                    routes: [{ name: 'MainApp' }],
+                })
+            );
         } catch (err) {
             console.log("Switch failed", err);
         }
@@ -464,6 +470,7 @@ const AppNavigator = () => {
     const [isLoading, setIsLoading] = React.useState(true);
     const [userToken, setUserToken] = React.useState(null);
     const [hasBatch, setHasBatch] = React.useState(false);
+    const { colors } = useTheme();
 
     React.useEffect(() => {
         const checkAuth = async () => {
@@ -492,7 +499,6 @@ const AppNavigator = () => {
     }, []);
 
     if (isLoading) {
-        const { colors } = useTheme();
         return (
             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
                 <ActivityIndicator size="large" color={colors.primary} />
@@ -500,15 +506,13 @@ const AppNavigator = () => {
         );
     }
 
-    const { colors } = useTheme();
-
     return (
         <NavigationContainer>
             <Stack.Navigator initialRouteName="SplashScreen" screenOptions={{ headerShown: false, cardStyle: { backgroundColor: colors.background } }}>
                 <Stack.Screen name="SplashScreen" component={SplashScreen} />
-                <Stack.Screen name="Login" component={LoginScreen} />
+                <Stack.Screen name="Login" component={LoginScreen} options={{ gestureEnabled: false }} />
                 <Stack.Screen name="Signup" component={SignupScreen} />
-                <Stack.Screen name="CoachingSelectionScreen" component={CoachingSelectionScreen} />
+                <Stack.Screen name="CoachingSelectionScreen" component={CoachingSelectionScreen} options={{ gestureEnabled: false }} />
                 <Stack.Screen name="CreateCoaching" component={CreateCoachingScreen} />
                 <Stack.Screen name="JoinCoaching" component={JoinCoachingScreen} />
                 <Stack.Screen name="AddMembers" component={AddMembersScreen} />
@@ -527,7 +531,7 @@ const AppNavigator = () => {
                 <Stack.Screen name="Chest" component={ChestScreen} />
                 <Stack.Screen name="BrainGames" component={BrainGamesScreen} />
                 <Stack.Screen name="PdfViewer" component={PdfViewerScreen} />
-                <Stack.Screen name="MainApp" component={DrawerNavigator} />
+                <Stack.Screen name="MainApp" component={DrawerNavigator} options={{ gestureEnabled: false }} />
             </Stack.Navigator>
         </NavigationContainer>
     );

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Text, View, StyleSheet, TouchableOpacity, Alert, Modal, FlatList, ActivityIndicator } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import { CommonActions } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { joinBatch, getInviteInfo } from '../api/api';
 
@@ -56,7 +57,12 @@ export default function QRScannerScreen({ navigation }) {
         await joinBatch(code, classGroupId);
         setShowClassModal(false);
         Alert.alert("Success", "Joined the coaching group!", [
-            { text: "OK", onPress: () => navigation.replace('MainApp') }
+            { text: "OK", onPress: () => navigation.dispatch(
+                CommonActions.reset({
+                    index: 0,
+                    routes: [{ name: 'MainApp' }],
+                })
+            ) }
         ]);
     } catch (error) {
         let msg = "Could not join the group. Please try again.";

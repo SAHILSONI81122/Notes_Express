@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated, Image, Dimensions, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
+import { CommonActions } from '@react-navigation/native';
 import { getMe, initializeAuthToken, clearSession, API_URL } from '../api/api';
 import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -19,6 +20,15 @@ const SplashScreen = ({ navigation }) => {
     const [cachedInstituteName, setCachedInstituteName] = React.useState(null);
     const [cachedInstituteLogoUrl, setCachedInstituteLogoUrl] = React.useState(null);
 
+    const resetTo = (screenName) => {
+        navigation.dispatch(
+            CommonActions.reset({
+                index: 0,
+                routes: [{ name: screenName }],
+            })
+        );
+    };
+
     const checkLogin = async () => {
         try {
             const token = await initializeAuthToken();
@@ -29,16 +39,16 @@ const SplashScreen = ({ navigation }) => {
                     await AsyncStorage.setItem('cached_user_profile', JSON.stringify(userRes.data));
                     
                     if (userRes.data.batch_id) {
-                        navigation.replace('MainApp');
+                        resetTo('MainApp');
                     } else {
-                        navigation.replace('CoachingSelectionScreen');
+                        resetTo('CoachingSelectionScreen');
                     }
                 } catch (e) {
                     if (e.response && e.response.status === 401) {
                         // Token is truly expired/invalid, do not use cache
                         console.log("Token expired, logging out.");
                         await clearSession();
-                        navigation.replace('Login');
+                        resetTo('Login');
                         return;
                     }
                     console.log("SplashScreen network error, trying cache:", e);
@@ -47,24 +57,24 @@ const SplashScreen = ({ navigation }) => {
                     if (cachedProfileStr) {
                         const cachedUser = JSON.parse(cachedProfileStr);
                         if (cachedUser.batch_id) {
-                            navigation.replace('MainApp');
+                            resetTo('MainApp');
                         } else {
-                            navigation.replace('CoachingSelectionScreen');
+                            resetTo('CoachingSelectionScreen');
                         }
                     } else {
                         // No cache available, must log in again
                         await clearSession();
-                        navigation.replace('Login');
+                        resetTo('Login');
                     }
                 }
             } else {
                 await clearSession();
-                navigation.replace('Login');
+                resetTo('Login');
             }
         } catch (e) {
             console.log("Critical boot error:", e);
             await clearSession();
-            navigation.replace('Login');
+            resetTo('Login');
         }
     };
 

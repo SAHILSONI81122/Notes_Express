@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, KeyboardAvoidingView, Platform, Image, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, KeyboardAvoidingView, Platform, Image, ActivityIndicator, BackHandler } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { CommonActions } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import Constants from 'expo-constants';
@@ -14,6 +15,16 @@ const LoginScreen = ({ navigation }) => {
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const { isDarkMode, colors } = useTheme();
+
+    // Prevent Android back button from navigating to stale account screens.
+    // After a navigation reset to Login, pressing back should exit the app.
+    useEffect(() => {
+        const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+            BackHandler.exitApp();
+            return true;
+        });
+        return () => backHandler.remove();
+    }, []);
 
     const handleLogin = async () => {
         if (!email.trim() || !password) {
@@ -43,12 +54,29 @@ const LoginScreen = ({ navigation }) => {
             try {
                 const userRes = await getMe();
                 if (userRes.data.batch_id) {
-                    navigation.replace('MainApp');
+                    // Reset the entire navigation tree to ensure no stale
+                    // screens from a previous account remain mounted.
+                    navigation.dispatch(
+                        CommonActions.reset({
+                            index: 0,
+                            routes: [{ name: 'MainApp' }],
+                        })
+                    );
                 } else {
-                    navigation.replace('CoachingSelectionScreen');
+                    navigation.dispatch(
+                        CommonActions.reset({
+                            index: 0,
+                            routes: [{ name: 'CoachingSelectionScreen' }],
+                        })
+                    );
                 }
             } catch (e) {
-                navigation.replace('CoachingSelectionScreen');
+                navigation.dispatch(
+                    CommonActions.reset({
+                        index: 0,
+                        routes: [{ name: 'CoachingSelectionScreen' }],
+                    })
+                );
             }
         } catch (error) {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);

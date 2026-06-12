@@ -52,6 +52,7 @@ export const setSessionToken = async (token) => {
 export const clearSession = async () => {
   authToken = null;
   isInitialized = true;
+  initPromise = null; // Reset so next initializeAuthToken reads fresh from AsyncStorage
   try {
     const keys = await AsyncStorage.getAllKeys();
     const keysToRemove = keys.filter(key => key !== 'theme');

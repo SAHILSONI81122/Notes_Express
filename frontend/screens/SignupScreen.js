@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { CommonActions } from '@react-navigation/native';
 import { signup, login, getMe, setSessionToken, clearSession } from '../api/api';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -44,12 +45,27 @@ const SignupScreen = ({ navigation }) => {
             try {
                 const userRes = await getMe();
                 if (userRes.data.batch_id) {
-                    navigation.replace('MainApp');
+                    navigation.dispatch(
+                        CommonActions.reset({
+                            index: 0,
+                            routes: [{ name: 'MainApp' }],
+                        })
+                    );
                 } else {
-                    navigation.replace('CoachingSelectionScreen');
+                    navigation.dispatch(
+                        CommonActions.reset({
+                            index: 0,
+                            routes: [{ name: 'CoachingSelectionScreen' }],
+                        })
+                    );
                 }
             } catch (e) {
-                navigation.replace('CoachingSelectionScreen');
+                navigation.dispatch(
+                    CommonActions.reset({
+                        index: 0,
+                        routes: [{ name: 'CoachingSelectionScreen' }],
+                    })
+                );
             }
         } catch (error) {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);

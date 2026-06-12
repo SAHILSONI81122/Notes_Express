@@ -1,7 +1,7 @@
-
 import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, Alert, ActivityIndicator, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { CommonActions } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
@@ -89,7 +89,12 @@ const CreateCoachingScreen = ({ navigation }) => {
             await AsyncStorage.removeItem('recent_notes_v1');
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             Alert.alert("Success", "Coaching group created! You can now invite students and teachers.");
-            navigation.replace('MainApp');
+            navigation.dispatch(
+                CommonActions.reset({
+                    index: 0,
+                    routes: [{ name: 'MainApp' }],
+                })
+            );
         } catch (error) {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
             let errorMsg = "Could not create group. Please check your network.";

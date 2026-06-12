@@ -370,7 +370,7 @@ const NotesScreen = ({ navigation, route }) => {
             fetchData('');
             const action = folder ? `Studying in ${folder.name}` : 'Browsing Class Notes';
             sendHeartbeat(action).catch(console.log);
-            const interval = setInterval(() => sendHeartbeat(action).catch(console.log), 1000);
+            const interval = setInterval(() => sendHeartbeat(action).catch(console.log), 30000);
             return () => clearInterval(interval);
         }, [folder])
     );

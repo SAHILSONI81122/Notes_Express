@@ -413,7 +413,7 @@ const DPPScreen = ({ navigation, route }) => {
             fetchData('');
             const action = folder ? `Solving DPPs in ${folder.name}` : 'Browsing DPPs';
             sendHeartbeat(action).catch(console.log);
-            const interval = setInterval(() => sendHeartbeat(action).catch(console.log), 1000);
+            const interval = setInterval(() => sendHeartbeat(action).catch(console.log), 30000);
             return () => clearInterval(interval);
         }, [folder])
     );
